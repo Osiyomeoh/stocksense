@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StockSense</title>
+<style>
+:root {
+  --bg: #f7f6f2; --panel: #ffffff; --ink: #1d232b; --muted: #5d6874; --line: #dcdcd4;
+  --ok: #1f7a4d; --warn: #a15c00; --bad: #b3261e; --accent: #1f5f8b; --chip: #eef1f4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181d; --panel: #1c2128; --ink: #e6e9ec; --muted: #9aa5b1; --line: #313842;
+    --ok: #5cc28f; --warn: #e3a64f; --bad: #f08a80; --accent: #79b4e0; --chip: #262d36;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 15px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.sub { color: var(--muted); margin: 0 0 16px; }
+.disclaimer { border-left: 3px solid var(--warn); padding: 6px 10px; background: var(--panel); margin: 0 0 18px; font-size: 14px; }
+form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+select, button { font: inherit; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 16px; overflow-x: auto; }
+.status { font-weight: 600; }
+.status.ok { color: var(--ok); } .status.needs_review { color: var(--warn); } .status.error { color: var(--bad); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 1px 7px; border-radius: 10px; background: var(--chip); font-size: 12px; margin: 1px 2px 1px 0; }
+.chip.bad { color: var(--bad); } .chip.warn { color: var(--warn); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.stat b { display: block; font-size: 20px; }
+.stat span { color: var(--muted); font-size: 13px; }
+.muted { color: var(--muted); }
+h2 .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+code { font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>StockSense: Before the Rain</h1>
+  <p class="sub">Which clinics will be cut off by floods before their malaria medicine runs out, and what should move or be bought today?</p>
+  <p class="disclaimer">Not a clinical tool. StockSense drafts a plan; a pharmacist approves every action. Stock, roads and clinics are SYNTHETIC; river and rain are real 2022 Open-Meteo data.</p>
+
+  <form id="f">
+    <label for="as_of">Snapshot</label>
+    <select id="as_of">
+      <option value="2022-07-04">2022-07-04 (river low)</option>
+      <option value="2022-08-08" selected>2022-08-08 (river rising)</option>
+    </select>
+    <button id="go" type="submit">Plan</button>
+    <span id="msg" class="muted"></span>
+  </form>
+
+  <div id="out"></div>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const naira = (n) => "₦" + Number(n || 0).toLocaleString("en-NG");
+const FLAG = { below_safety: "warn", missing_reading: "bad", road_closing: "bad" };
+
+function table(cols, rows) {
+  if (!rows.length) return '<p class="muted">None.</p>';
+  return "<table><tr>" + cols.map((c) => `<th>${esc(c[0])}</th>`).join("") + "</tr>" +
+    rows.map((r) => "<tr>" + cols.map((c) => `<td class="${c[2] || ""}">${c[1](r)}</td>`).join("") + "</tr>").join("") + "</table>";
+}
+
+function render(b, events) {
+  const roads = Object.values(b.roads);
+  const held = b.held || [];
+  const unmet = Object.entries(b.unmet || {});
+  $("#out").innerHTML = `
+  <div class="panel grid">
+    <div class="stat"><b class="status ${esc(b.status)}">${esc(b.status.replace("_", " "))}</b><span>status</span></div>
+    <div class="stat"><b>${naira(b.cost)}</b><span>plan cost</span></div>
+    <div class="stat"><b>${b.plan.length}</b><span>verified lines</span></div>
+    <div class="stat"><b>${held.length}</b><span>on HOLD</span></div>
+    <div class="stat"><b>${b.retries}</b><span>Critic retries</span></div>
+  </div>
+  <div class="panel"><h2>Roads and flags</h2>${table([
+    ["Clinic", (r) => esc(r.clinic_id)],
+    ["Flags", (r) => (b.flags[r.clinic_id] || []).map((f) => `<span class="chip ${FLAG[f] || ""}">${esc(f.replace("_", " "))}</span>`).join("") || '<span class="muted">none</span>'],
+    ["Road forecast", (r) => esc(r.reason)],
+    ["Confidence", (r) => r.confidence == null ? "" : esc(r.confidence), "num"],
+  ], roads)}</div>
+  <div class="panel"><h2>Plan (re-verified against Zetaris)</h2>${table([
+    ["Kind", (l) => esc(l.kind)], ["From", (l) => esc(l.source)], ["To", (l) => esc(l.to)],
+    ["Courses", (l) => esc(l.qty), "num"], ["Arrives", (l) => "day " + esc(l.deliver_day), "num"],
+    ["Transport", (l) => l.kind === "transfer" ? naira(l.cost) : "", "num"], ["Why", (l) => esc(l.why)],
+  ], b.plan)}
+  ${b.purchase_order ? `<p>Purchase order: <b>${esc(b.purchase_order.qty)}</b> courses from <b>${esc(b.purchase_order.supplier)}</b>, ${naira(b.purchase_order.cost)}, ${esc(b.purchase_order.lead_days)}-day lead (${esc(b.purchase_order.why)}).</p>` : ""}</div>
+  <div class="panel"><h2>On HOLD and unmet</h2>${table([
+    ["Clinic", (h) => esc(h.clinic || h.to)], ["Reason", (h) => esc(h.reason || h.hold_reason)],
+  ], held)}${unmet.length ? "<p>Not covered: " + unmet.map(([c, n]) => `${esc(c)} short by ${esc(n)}`).join(", ") + " (escalate).</p>" : ""}</div>
+  <div class="panel"><h2>Agent trace <span class="muted">${esc(b.trace)}</span></h2>${table([
+    ["Agent", (e) => esc(e.agent_name)], ["Action", (e) => esc(e.action)], ["Output", (e) => esc(e.output_summary)],
+    ["→", (e) => esc(e.target_agent)], ["Retry", (e) => esc(e.retry_count), "num"], ["Status", (e) => esc(e.status)],
+  ], events)}</div>`;
+}
+
+$("#f").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  $("#go").disabled = true;
+  $("#msg").textContent = "Running agents…";
+  try {
+    const r = await fetch("/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ as_of: $("#as_of").value }) });
+    const b = await r.json();
+    if (b.error) throw new Error(`${b.error.type}: ${b.error.message}`);
+    const t = await fetch("/trace/" + encodeURIComponent(b.run_id));
+    render(b, t.ok ? await t.json() : []);
+    $("#msg").textContent = `run ${b.run_id}${b.sample_mode ? " · SAMPLE_MODE replay" : " · live Zetaris"}`;
+  } catch (e) {
+    $("#out").innerHTML = `<div class="panel"><span class="status error">error</span> ${esc(e.message)}</div>`;
+    $("#msg").textContent = "";
+  } finally {
+    $("#go").disabled = false;
+  }
+});
+</script>
+</body>
+</html>
