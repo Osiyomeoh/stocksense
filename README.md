@@ -15,6 +15,14 @@ Open Agent Hackathon 2026 entry, Track 1. StockSense joins three kinds of source
 
 No single source says which clinics will be cut off before their stock runs out. The join does.
 
+## Prove it (no keys, no cluster, about 5 seconds)
+
+```bash
+python3 prove.py
+```
+
+It checks every number in this README twice: the README must state it, and a fresh run must produce it, replayed from the recorded Zetaris and Nightshift responses in `data/sample_cache`. The checks cover the four examples, the plan costs, the HOLD, the Critic's rejection, the Nemotron briefing's numbers, the H-MEM supplier switch and the backtest table. Each claim prints PASS or FAIL, and the exit code is non-zero if any fails. The test suite runs it too.
+
 ## How a run works
 
 ```
@@ -84,7 +92,7 @@ Errors come back as `{"error": {"type", "message"}}`: `bad_input` / `bad_json` (
 
 | Input | Shows |
 |---|---|
-| `01-plan-2022-07-04.json` | a full plan: 4 transfers, 1 purchase, P6 on HOLD (no stock reading) |
+| `01-plan-2022-07-04.json` | a full plan: 4 transfers, 1 purchase, P6 on HOLD (no stock reading); ₦514,850 |
 | `02-no-snapshot.json` | a date with no stock snapshot: structured 404, no guessing |
 | `03-bad-date.json` | bad input: structured 400 |
 | `04-plan-2022-08-08-rising-river.json` | rising river: the Critic rejects an 8-day purchase to P3 (road flagged), the retry covers P3 and P5 by next-day transfers; ₦521,900 |
