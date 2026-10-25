@@ -1,0 +1,9 @@
+{
+ "http_status": 400,
+ "body": {
+  "error": {
+   "type": "bad_input",
+   "message": "as_of must be an ISO date, e.g. 2022-07-04"
+  }
+ }
+}

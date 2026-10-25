@@ -1,0 +1,189 @@
+{
+ "http_status": 200,
+ "body": {
+  "run_id": "58f6094770ba",
+  "as_of": "2022-07-04",
+  "sample_mode": true,
+  "status": "needs_review",
+  "roads": {
+   "P1": {
+    "clinic_id": "P1",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1058.25,
+    "slope_m3s_per_day": -10.4,
+    "reason": "road not flood-prone"
+   },
+   "P2": {
+    "clinic_id": "P2",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1058.25,
+    "slope_m3s_per_day": -10.4,
+    "reason": "road not flood-prone"
+   },
+   "P3": {
+    "clinic_id": "P3",
+    "closes_in_days": null,
+    "confidence": 0.94,
+    "river_m3s": 1058.25,
+    "slope_m3s_per_day": -10.4,
+    "reason": "river 1058 not rising; closes above 4000"
+   },
+   "P4": {
+    "clinic_id": "P4",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1058.25,
+    "slope_m3s_per_day": -10.4,
+    "reason": "road not flood-prone"
+   },
+   "P5": {
+    "clinic_id": "P5",
+    "closes_in_days": null,
+    "confidence": 0.94,
+    "river_m3s": 1058.25,
+    "slope_m3s_per_day": -10.4,
+    "reason": "river 1058 not rising; closes above 3000"
+   },
+   "P6": {
+    "clinic_id": "P6",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1058.25,
+    "slope_m3s_per_day": -10.4,
+    "reason": "road not flood-prone"
+   },
+   "P7": {
+    "clinic_id": "P7",
+    "closes_in_days": null,
+    "confidence": 0.94,
+    "river_m3s": 1058.25,
+    "slope_m3s_per_day": -10.4,
+    "reason": "river 1058 not rising; closes above 9000"
+   },
+   "P8": {
+    "clinic_id": "P8",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1058.25,
+    "slope_m3s_per_day": -10.4,
+    "reason": "road not flood-prone"
+   }
+  },
+  "flags": {
+   "P1": [],
+   "P2": [
+    "below_safety"
+   ],
+   "P3": [
+    "below_safety"
+   ],
+   "P4": [],
+   "P5": [
+    "below_safety"
+   ],
+   "P6": [
+    "missing_reading"
+   ],
+   "P7": [],
+   "P8": []
+  },
+  "plan": [
+   {
+    "kind": "transfer",
+    "to": "P2",
+    "qty": 240,
+    "cost": 2700,
+    "deliver_day": 1,
+    "source": "P8",
+    "why": "P8 has 240 above its keep level; 18 km via the LGA store"
+   }
+  ],
+  "held": [
+   {
+    "kind": "transfer",
+    "to": "P3",
+    "qty": 190,
+    "cost": 3900,
+    "deliver_day": 1,
+    "source": "P4",
+    "why": "P4 has 190 above its keep level; 26 km via the LGA store",
+    "hold_reason": "river source could not be re-verified, so this road's status is unknown"
+   },
+   {
+    "kind": "transfer",
+    "to": "P3",
+    "qty": 23,
+    "cost": 3600,
+    "deliver_day": 1,
+    "source": "P8",
+    "why": "P8 has 23 above its keep level; 24 km via the LGA store",
+    "hold_reason": "river source could not be re-verified, so this road's status is unknown"
+   },
+   {
+    "kind": "transfer",
+    "to": "P5",
+    "qty": 21,
+    "cost": 4650,
+    "deliver_day": 1,
+    "source": "P8",
+    "why": "P8 has 21 above its keep level; 31 km via the LGA store",
+    "hold_reason": "river source could not be re-verified, so this road's status is unknown"
+   },
+   {
+    "kind": "purchase",
+    "to": "P5",
+    "qty": 18,
+    "cost": 0,
+    "deliver_day": 8,
+    "source": "S2",
+    "why": "from the S2 order, delivered via the LGA store",
+    "hold_reason": "river source could not be re-verified, so this road's status is unknown"
+   },
+   {
+    "clinic": "P6",
+    "reason": "no stock reading for this snapshot; ask the clinic before planning"
+   }
+  ],
+  "purchase_order": {
+   "supplier": "S2",
+   "qty": 200,
+   "cost": 500000,
+   "lead_days": 7,
+   "why": "cheapest whole order: gap 18, min order 200 at ₦2500/course"
+  },
+  "unmet": {},
+  "violations": [],
+  "checks": [
+   {
+    "check": "P2 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P3 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P4 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P5 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P8 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "river discharge on as_of",
+    "ok": false,
+    "error": "SAMPLE_MODE: no cached zetaris response for this request; run once live to record it"
+   }
+  ],
+  "cost": 514850,
+  "retries": 0,
+  "trace": "logs/trace-58f6094770ba.jsonl"
+ }
+}

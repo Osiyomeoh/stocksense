@@ -6,6 +6,8 @@ instead of being sent to the pharmacist. Nothing is guessed.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+
 from app import data
 from app.agents.planner import Plan
 from app.data import Clinic
@@ -16,8 +18,13 @@ def verify(plan: Plan, clinics: list[Clinic], river_now: float, as_of: str, rive
     ids = sorted({l.to for l in plan.lines} | {l.source for l in plan.lines if l.kind == "transfer"})
     checks, failed = [], {}
 
+    # Both re-reads go to Zetaris at once; each is checked on its own.
+    with ThreadPoolExecutor(2) as pool:
+        clinic_job = pool.submit(data.load_clinics, as_of, ids) if ids else None
+        river_job = pool.submit(data.load_river_on, as_of, river_table)
+
     try:
-        fresh = {c.clinic_id: c for c in data.load_clinics(as_of, ids)} if ids else {}
+        fresh = {c.clinic_id: c for c in clinic_job.result()} if clinic_job else {}
         for cid in ids:
             a, b = used[cid], fresh.get(cid)
             ok = b is not None and (a.stock, a.daily_use) == (b.stock, b.daily_use)
@@ -31,8 +38,7 @@ def verify(plan: Plan, clinics: list[Clinic], river_now: float, as_of: str, rive
 
     river_ok = True
     try:
-        river = data.load_river(as_of, river_table)
-        river_ok = bool(river) and river[-1][1] == river_now
+        river_ok = river_job.result() == river_now
         checks.append({"check": "river discharge on as_of", "ok": river_ok})
     except Exception as e:
         river_ok = False

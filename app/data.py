@@ -83,6 +83,16 @@ def river_sql(as_of: str, table: str = RIVER_TABLE) -> str:
     )
 
 
+def river_on_sql(as_of: str, table: str = RIVER_TABLE) -> str:
+    """The single as_of reading, for the Evaluator's re-check."""
+    return river_sql(as_of, table).replace("<= DATE", "= DATE")
+
+
+def load_river_on(as_of: str, table: str = RIVER_TABLE) -> float | None:
+    rows = zetaris.query(river_on_sql(as_of, table))
+    return float(rows[-1]["discharge_m3s"]) if rows and rows[-1]["discharge_m3s"] is not None else None
+
+
 def load_river(as_of: str, table: str = RIVER_TABLE) -> list[tuple[str, float]]:
     rows = zetaris.query(river_sql(as_of, table))
     return [(r["obs_date"], float(r["discharge_m3s"])) for r in rows if r["discharge_m3s"] is not None]
