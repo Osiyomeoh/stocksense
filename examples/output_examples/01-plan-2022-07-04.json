@@ -1,7 +1,7 @@
 {
  "http_status": 200,
  "body": {
-  "run_id": "58f6094770ba",
+  "run_id": "1a636d807dbf",
   "as_of": "2022-07-04",
   "sample_mode": true,
   "status": "needs_review",
@@ -92,24 +92,12 @@
   "plan": [
    {
     "kind": "transfer",
-    "to": "P2",
-    "qty": 240,
-    "cost": 2700,
-    "deliver_day": 1,
-    "source": "P8",
-    "why": "P8 has 240 above its keep level; 18 km via the LGA store"
-   }
-  ],
-  "held": [
-   {
-    "kind": "transfer",
     "to": "P3",
     "qty": 190,
     "cost": 3900,
     "deliver_day": 1,
     "source": "P4",
-    "why": "P4 has 190 above its keep level; 26 km via the LGA store",
-    "hold_reason": "river source could not be re-verified, so this road's status is unknown"
+    "why": "P4 has 190 above its keep level; 26 km via the LGA store"
    },
    {
     "kind": "transfer",
@@ -118,8 +106,16 @@
     "cost": 3600,
     "deliver_day": 1,
     "source": "P8",
-    "why": "P8 has 23 above its keep level; 24 km via the LGA store",
-    "hold_reason": "river source could not be re-verified, so this road's status is unknown"
+    "why": "P8 has 23 above its keep level; 24 km via the LGA store"
+   },
+   {
+    "kind": "transfer",
+    "to": "P2",
+    "qty": 240,
+    "cost": 2700,
+    "deliver_day": 1,
+    "source": "P8",
+    "why": "P8 has 240 above its keep level; 18 km via the LGA store"
    },
    {
     "kind": "transfer",
@@ -128,8 +124,7 @@
     "cost": 4650,
     "deliver_day": 1,
     "source": "P8",
-    "why": "P8 has 21 above its keep level; 31 km via the LGA store",
-    "hold_reason": "river source could not be re-verified, so this road's status is unknown"
+    "why": "P8 has 21 above its keep level; 31 km via the LGA store"
    },
    {
     "kind": "purchase",
@@ -138,9 +133,10 @@
     "cost": 0,
     "deliver_day": 8,
     "source": "S2",
-    "why": "from the S2 order, delivered via the LGA store",
-    "hold_reason": "river source could not be re-verified, so this road's status is unknown"
-   },
+    "why": "from the S2 order, delivered via the LGA store"
+   }
+  ],
+  "held": [
    {
     "clinic": "P6",
     "reason": "no stock reading for this snapshot; ask the clinic before planning"
@@ -178,12 +174,11 @@
    },
    {
     "check": "river discharge on as_of",
-    "ok": false,
-    "error": "SAMPLE_MODE: no cached zetaris response for this request; run once live to record it"
+    "ok": true
    }
   ],
   "cost": 514850,
   "retries": 0,
-  "trace": "logs/trace-58f6094770ba.jsonl"
+  "trace": "logs/trace-1a636d807dbf.jsonl"
  }
 }
