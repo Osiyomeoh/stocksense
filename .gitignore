@@ -1,0 +1,6 @@
+data/raw/
+.env
+logs/
+__pycache__/
+killtests/k3/hmem/
+node_modules/
