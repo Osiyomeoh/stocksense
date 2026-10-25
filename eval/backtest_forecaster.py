@@ -34,16 +34,26 @@ def main(argv):
     river = [(t, q) for t, q in zip(daily["time"], daily["river_discharge"]) if q is not None]
 
     print(f"GloFAS Lokoja {river[0][0]}..{river[-1][0]}, horizon {HORIZON} days")
-    print("road  closes      first warning           unflagged in last 30d  forecast date late")
+    print("road  closes      first warning           unflagged in last 30d  forecast date late  with held warnings: unflagged, late")
     for cid, thr in ROADS.items():
         closes = next(i for i, (_, q) in enumerate(river) if q >= thr)
         clinic = Clinic(cid, cid, "", 0, 1.0, None, None, thr, 0, 0)
         flagged, late, first, missed = 0, 0, None, 0
+        h_flagged, h_late, h_missed, warning = 0, 0, 0, {}
         for i in range(1, closes):
+            f = forecaster.forecast([clinic], river[: i + 1], HORIZON)
+            held = forecaster.hold(f, warning, river[i][0], HORIZON)[cid]
+            if f[cid].closes_in_days is not None:  # a fresh warning replaces the held one, as in the app
+                warning = {cid: {"since": river[i][0], "days": f[cid].closes_in_days, "river": f[cid].river_m3s}}
+            f = f[cid]
             actual = closes - i
             if actual > HORIZON:
                 continue
-            f = forecaster.forecast([clinic], river[: i + 1], HORIZON)[cid]
+            if held.closes_in_days is None:
+                h_missed += 1
+            else:
+                h_flagged += 1
+                h_late += held.closes_in_days > actual
             if f.closes_in_days is None:
                 missed += 1
                 continue
@@ -51,7 +61,7 @@ def main(argv):
             first = first or (river[i][0], actual)
             late += f.closes_in_days > actual
         warn = f"{first[0]} ({first[1]}d ahead)" if first else "never"
-        print(f"{cid:4}  {river[closes][0]}  {warn:22}  {f"{missed} days":22}  {late}/{flagged} days")
+        print(f"{cid:4}  {river[closes][0]}  {warn:22}  {f"{missed} days":22}  {f"{late}/{flagged} days":18}  {h_missed} days, {h_late}/{h_flagged}")
 
 
 if __name__ == "__main__":

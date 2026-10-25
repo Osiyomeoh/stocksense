@@ -9,7 +9,8 @@ Confidence is the R² of the 7-day trend: how steady the rise is.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from datetime import date
 
 from app.data import Clinic
 
@@ -64,4 +65,25 @@ def forecast(clinics: list[Clinic], river: list[tuple[str, float]], horizon_days
             else:
                 f = (round(days, 1), round(r2, 2), f"at up to +{slope:.0f}/day, could reach {thr:.0f} in {days:.1f} days")
         out[c.clinic_id] = RoadForecast(c.clinic_id, f[0], f[1], now, round(slope, 2), f[2])
+    return out
+
+
+def hold(roads: dict[str, RoadForecast], warnings: dict[str, dict], as_of: str, horizon_days: int) -> dict[str, RoadForecast]:
+    """Keep an earlier warning on while it is fresh and the river hasn't fallen.
+
+    The fastest-rise slope dips for a day or two inside a surge, which turned
+    a road's warning off and on again (eval/backtest_forecaster.py). A warning
+    {"since", "days", "river"} from at most horizon_days before as_of stays on,
+    counting down from its own estimate, unless the river is now below the
+    reading that raised it. Warnings dated after as_of are ignored.
+    """
+    out = dict(roads)
+    for cid, w in warnings.items():
+        r = roads.get(cid)
+        if r is None or r.closes_in_days is not None:
+            continue
+        age = (date.fromisoformat(as_of) - date.fromisoformat(w["since"])).days
+        if 0 < age <= horizon_days and r.river_m3s >= w["river"]:
+            out[cid] = replace(r, closes_in_days=round(max(0.0, w["days"] - age), 1),
+                               reason=f"warning from {w['since']} held: river {r.river_m3s:.0f} has not fallen below {w['river']:.0f}")
     return out

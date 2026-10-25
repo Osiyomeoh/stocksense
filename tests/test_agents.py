@@ -6,6 +6,7 @@ from app import config, data, pipeline
 from app.adapters import nightshift, zetaris
 from app.agents import coordinator, critic, forecaster, planner
 from app.trace import Trace
+from tests import fresh_memory
 
 RECORDED = json.loads((config.SAMPLE_DIR / "zetaris" / "4a8de106818241d8.json").read_text())["response"]
 CLINIC_ROWS = [dict(zip(RECORDED["headers"], r)) for r in RECORDED["data"]]
@@ -85,6 +86,9 @@ class PlannerCriticTests(unittest.TestCase):
 
 
 class PipelineTests(unittest.TestCase):
+    def setUp(self):
+        fresh_memory(self)
+
     def run_pipeline(self, river, briefing="Approve, edit or reject each line.", **kw):
         reply = {"text": briefing, "model": coordinator.MODEL, "raw": {}}
         with mock.patch.object(zetaris, "query", fake_query(river, **kw)), \
@@ -121,3 +125,24 @@ class PipelineTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RoadWarningHoldTests(unittest.TestCase):
+    def setUp(self):
+        with mock.patch.object(zetaris, "query", fake_query(RISING)):
+            self.clinics = data.load_clinics("2022-07-04")
+
+    def test_warning_is_held_while_the_river_has_not_fallen(self):
+        flat = forecaster.forecast(self.clinics, [("d", 1600.0)] * 7, 30)
+        self.assertIsNone(flat["P5"].closes_in_days)
+        w = {"P5": {"since": "2022-07-01", "days": 14.0, "river": 1600.0}}
+        held = forecaster.hold(flat, w, "2022-07-04", 30)["P5"]
+        self.assertEqual(held.closes_in_days, 11.0)               # 14 - 3 days since the warning
+        self.assertIn("held", held.reason)
+
+    def test_no_hold_after_the_river_falls_or_from_the_future(self):
+        flat = forecaster.forecast(self.clinics, [("d", 1500.0)] * 7, 30)
+        w = {"P5": {"since": "2022-07-01", "days": 14.0, "river": 1600.0}}
+        self.assertIsNone(forecaster.hold(flat, w, "2022-07-04", 30)["P5"].closes_in_days)
+        w["P5"].update(since="2022-07-10", river=1000.0)
+        self.assertIsNone(forecaster.hold(flat, w, "2022-07-04", 30)["P5"].closes_in_days)

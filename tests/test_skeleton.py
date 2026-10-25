@@ -6,9 +6,13 @@ import run
 from app import config
 from app.adapters import cache
 from app.trace import FIELDS
+from tests import fresh_memory
 
 
 class RunTests(unittest.TestCase):
+    def setUp(self):
+        fresh_memory(self)
+
     def test_bad_date_is_a_structured_400(self):
         status, body = run.handle('{"as_of": "July"}')
         self.assertEqual(status, 400)

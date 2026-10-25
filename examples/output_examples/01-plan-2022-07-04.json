@@ -1,7 +1,7 @@
 {
  "http_status": 200,
  "body": {
-  "run_id": "aedb63c6ab41",
+  "run_id": "ffa7eaea301e",
   "as_of": "2022-07-04",
   "sample_mode": true,
   "status": "needs_review",
@@ -179,12 +179,17 @@
   ],
   "cost": 514850,
   "retries": 0,
+  "memory": {
+   "avoid": [],
+   "escalate": [],
+   "memories": []
+  },
   "briefing": {
    "text": "P2, P3 and P5 are below safety stock; P6 has a missing reading and is held. Transfers: 190 from P4 to P3, 23 from P8 to P3, 240 from P8 to P2, 21 from P8 to P5, all deliver day 1. Purchase of 18 from S2 to P5 deliver day 8, cost 500000 naira; total cost_naira 514850. Below safety stock for P2, P3, P5 requires pharmacist decision. Approve, edit or reject each line.",
    "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
    "source": "nemotron",
    "reason": "all numbers match the plan"
   },
-  "trace": "logs/trace-aedb63c6ab41.jsonl"
+  "trace": "logs/trace-ffa7eaea301e.jsonl"
  }
 }

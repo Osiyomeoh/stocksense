@@ -48,3 +48,26 @@ def recall() -> dict:
         (avoid if m["confidence"] >= TRUST else escalate).add(s)
         used.append(m)
     return {"avoid": sorted(avoid), "escalate": sorted(escalate - avoid), "memories": used}
+
+
+def road_warnings(as_of: str) -> dict[str, dict]:
+    """The latest remembered road warning per clinic, raised on or before as_of."""
+    out: dict[str, dict] = {}
+    for m in hmem.find("road", "warning"):
+        t = dict(x.split(":", 1) for x in m["tags"] if ":" in x)
+        if {"clinic", "since", "days", "river"} <= t.keys() and t["since"] <= as_of \
+                and t["since"] >= out.get(t["clinic"], {}).get("since", ""):
+            out[t["clinic"]] = {"since": t["since"], "days": float(t["days"]), "river": float(t["river"]), "id": m["id"]}
+    return out
+
+
+def remember_roads(roads: dict, as_of: str, known: dict[str, dict]) -> list[dict]:
+    """Store each fresh warning (forecast, not held) not already stored for this date."""
+    out = []
+    for cid, r in roads.items():
+        if r.closes_in_days is None or r.reason.startswith("warning from") or known.get(cid, {}).get("since") == as_of:
+            continue
+        out.append(hmem.add(f"Road to {cid} warned on {as_of}: {r.reason}",
+                            ["road", "warning", f"clinic:{cid}", f"since:{as_of}", f"days:{r.closes_in_days}",
+                             f"river:{r.river_m3s}"], r.confidence or 0.5, "forecaster", "road warning"))
+    return out

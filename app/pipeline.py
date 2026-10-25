@@ -22,6 +22,13 @@ def run(as_of: str, trace: Trace, constraints: dict | None = None) -> dict[str, 
               target_agent="Forecaster")
 
     roads = forecaster.forecast(clinics, river, cfg["forecast_horizon_days"])
+    try:
+        warnings = memory_keeper.road_warnings(as_of)
+        roads = forecaster.hold(roads, warnings, as_of, cfg["forecast_horizon_days"])
+        for m in memory_keeper.remember_roads(roads, as_of, warnings):
+            trace.log("MemoryKeeper", "hmem.add", m["id"], m["content"], target_agent="Forecaster")
+    except hmem.HMemError as e:
+        trace.log("MemoryKeeper", "hmem.road_warnings", as_of, f"skipped: {e}", target_agent="Forecaster", status="fallback")
     for r in roads.values():
         trace.log("Forecaster", "road_forecast", r.clinic_id, r.reason, target_agent="Sentinel", confidence=r.confidence)
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from app import config, data, pipeline
-from app.adapters import nightshift
+from app.adapters import hmem, nightshift
 from app.agents import coordinator, memory_keeper
 from app.trace import Trace
 
@@ -46,6 +46,14 @@ class MemoryChangesDecisionTests(unittest.TestCase):
         out = self.plan()
         self.assertEqual(out["memory"]["escalate"], ["S2"])      # below 0.70: shown, not applied
         self.assertEqual(out["purchase_order"]["supplier"], "S2")
+
+    def test_a_run_remembers_its_road_warnings_once(self):
+        self.plan()
+        self.plan()
+        w = memory_keeper.road_warnings("2022-08-08")
+        self.assertEqual(sorted(w), ["P3", "P5"])
+        self.assertEqual(memory_keeper.road_warnings("2022-08-07"), {})  # no hindsight
+        self.assertEqual(len(hmem.find("road", "warning")), 2)
 
     def test_note_without_a_known_supplier_stores_nothing(self):
         self.assertEqual(memory_keeper.learn("S9 was late; roads are bad"), [])
