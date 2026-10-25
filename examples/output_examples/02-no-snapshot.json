@@ -3,7 +3,7 @@
  "body": {
   "error": {
    "type": "no_snapshot",
-   "message": "no stock snapshot for 2022-08-01 in Zetaris (have: 2022-07-04)"
+   "message": "no stock snapshot for 2022-08-01 in Zetaris (have: 2022-07-04, 2022-08-08)"
   }
  }
 }

@@ -10,8 +10,8 @@ Open Agent Hackathon 2026 entry, Track 1. StockSense joins three kinds of source
 |---|---|---|---|
 | Clinic stock (Postgres on RDS) | database | courses of ACT on hand, daily use | SYNTHETIC (Kafin LGA scenario) |
 | Road register | spreadsheet | each clinic's road and the river level that closes it | SYNTHETIC |
-| GloFAS river discharge, Lokoja (Open-Meteo flood API) | web API | daily discharge, 2022 season | real |
-| Rainfall, Lokoja (Open-Meteo archive) | web API | daily rain, 2022 season | real |
+| GloFAS river discharge, Lokoja (Open-Meteo flood API) | web API | daily discharge, 2022 season | real (copied to Postgres, see below) |
+| Rainfall, Lokoja (Open-Meteo archive) | web API | daily rain, 2022 season | real (copied to Postgres) |
 
 No single source says which clinics will be cut off before their stock runs out. The join does.
 
@@ -51,6 +51,10 @@ Tests: `python3 -m unittest discover -s tests -t .`
 
 Errors come back as `{"error": {"type", "message"}}`: `bad_input` / `bad_json` (400), `no_snapshot` (404), `zetaris_unavailable` / `nightshift_unavailable` (502), `sample_cache_miss` (503).
 
+## Setup (Zetaris side)
+
+`killtests/k2` built the first version; `infra/` is the current state: `python3 -I infra/seed_pg.py` loads the 2022-08-08 SYNTHETIC stock snapshot and the river and rain copies into RDS Postgres, and `python3 -I infra/apply_zetaris.py` registers them and re-activates the `clinic_risk` USL view for any snapshot date. The view's `first_closure_date` column uses the whole season (hindsight); no agent reads it.
+
 ## Examples
 
 `examples/input_examples/` and matching `examples/output_examples/`; regenerate with `python3 examples/make_outputs.py`.
@@ -60,6 +64,7 @@ Errors come back as `{"error": {"type", "message"}}`: `bad_input` / `bad_json` (
 | `01-plan-2022-07-04.json` | a full plan: 4 transfers, 1 purchase, P6 on HOLD (no stock reading) |
 | `02-no-snapshot.json` | a date with no stock snapshot: structured 404, no guessing |
 | `03-bad-date.json` | bad input: structured 400 |
+| `04-plan-2022-08-08-rising-river.json` | rising river: the Critic rejects an 8-day purchase to P3 (road flagged), the retry covers P3 and P5 by next-day transfers; ₦521,900 |
 
 ## Can the road forecast be trusted?
 
@@ -75,7 +80,7 @@ The river's August surge outruns any extrapolation from the week before. So a fo
 
 ## What the USL did for us
 
-[FILL: measured, not estimated: lines we didn't write, the completeness check that flags P6, what Zetaris should improve. Findings so far: the SQL editor splits at every `;` including inside string literals; `DROP LIGHTNING TABLE` is a syntax error on build 2.4.3.1; a REST-table query takes about 3 minutes per run.]
+[FILL: measured, not estimated: lines we didn't write, the completeness check that flags P6, what Zetaris should improve. Findings so far: the SQL editor splits at every `;` including inside string literals; `DROP LIGHTNING TABLE` is a syntax error on build 2.4.3.1; Zetaris re-fetches a REST table on every query, about 3 minutes each, so `infra/seed_pg.py` copies the same Open-Meteo responses into Postgres: a live run went from 4–6 minutes to under about a minute.]
 
 ## Built before and during the event
 

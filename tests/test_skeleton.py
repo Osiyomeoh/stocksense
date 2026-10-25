@@ -21,7 +21,7 @@ class RunTests(unittest.TestCase):
     def test_sample_mode_replays_cache_and_writes_a_full_trace(self):
         clinics = json.loads((config.SAMPLE_DIR / "zetaris" / "4a8de106818241d8.json").read_text())["response"]
         river = {"headers": ["obs_date", "discharge_m3s"], "data": [["2022-07-04", "1058.25"]]}
-        replay = lambda kind, req: river if "glofas" in req["sql"] else clinics
+        replay = lambda kind, req: river if "river_daily" in req["sql"] else clinics
         with mock.patch.object(config, "SAMPLE_MODE", True), mock.patch.object(cache, "load", side_effect=replay):
             status, body = run.handle('{"as_of": "2022-07-04"}')
         self.assertEqual(status, 200)

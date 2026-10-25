@@ -19,7 +19,7 @@ def fake_query(river, clinic_rows=CLINIC_ROWS, fail_on=None):
     def query(sql, limit=1000):
         if fail_on and fail_on in sql:
             raise zetaris.ZetarisError("cluster suspended")
-        if "glofas" in sql:
+        if "river_daily" in sql:
             return river_rows(river)
         ids = [c for c in "P1 P2 P3 P4 P5 P6 P7 P8".split() if f"'{c}'" in sql]
         return [r for r in clinic_rows if not ids or r["clinic_id"] in ids]

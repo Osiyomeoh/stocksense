@@ -1,6 +1,6 @@
 {
  "request": {
-  "sql": "SELECT CAST(t AS DATE) AS obs_date, CAST(g.daily.river_discharge[i] AS DOUBLE) AS discharge_m3s FROM k2_src.glofas_lokoja_2022 g LATERAL VIEW posexplode(g.daily.time) p AS i, t WHERE CAST(t AS DATE) <= DATE '2022-07-04' ORDER BY obs_date",
+  "sql": "SELECT CAST(obs_date AS STRING) AS obs_date, discharge_m3s FROM stocksense_pg.river_daily WHERE river_point = 'LOKOJA' AND obs_date <= DATE '2022-07-04' ORDER BY obs_date",
   "limit": 1000
  },
  "response": {
@@ -27,6 +27,6 @@
    ]
   ],
   "total": 4,
-  "timeUsed": 1209
+  "timeUsed": 228
  }
 }

@@ -38,6 +38,22 @@
     "stock+roads SYNTHETIC, river+rain Open-Meteo"
    ],
    [
+    "P1",
+    "Kafin Central PHC",
+    "2022-08-08",
+    "700",
+    "17.333333333333332",
+    "40.38461538461539",
+    "R1",
+    "tarred",
+    null,
+    "1975.97",
+    null,
+    null,
+    "3.5",
+    "stock+roads SYNTHETIC, river+rain Open-Meteo"
+   ],
+   [
     "P2",
     "Gidan Ruwa PHC",
     "2022-07-04",
@@ -51,6 +67,22 @@
     null,
     null,
     "31.7",
+    "stock+roads SYNTHETIC, river+rain Open-Meteo"
+   ],
+   [
+    "P2",
+    "Gidan Ruwa PHC",
+    "2022-08-08",
+    "150",
+    "10.0",
+    "15.0",
+    "R2",
+    "laterite",
+    null,
+    "1975.97",
+    null,
+    null,
+    "3.5",
     "stock+roads SYNTHETIC, river+rain Open-Meteo"
    ],
    [
@@ -70,6 +102,22 @@
     "stock+roads SYNTHETIC, river+rain Open-Meteo"
    ],
    [
+    "P3",
+    "Tudun Wada PHC",
+    "2022-08-08",
+    "90",
+    "8.666666666666666",
+    "10.384615384615385",
+    "R3",
+    "laterite",
+    "4000.0",
+    "1975.97",
+    "2024.03",
+    "2022-08-28",
+    "3.5",
+    "stock+roads SYNTHETIC, river+rain Open-Meteo"
+   ],
+   [
     "P4",
     "Sabon Gari PHC",
     "2022-07-04",
@@ -83,6 +131,22 @@
     null,
     null,
     "31.7",
+    "stock+roads SYNTHETIC, river+rain Open-Meteo"
+   ],
+   [
+    "P4",
+    "Sabon Gari PHC",
+    "2022-08-08",
+    "800",
+    "12.666666666666666",
+    "63.15789473684211",
+    "R4",
+    "tarred",
+    null,
+    "1975.97",
+    null,
+    null,
+    "3.5",
     "stock+roads SYNTHETIC, river+rain Open-Meteo"
    ],
    [
@@ -102,6 +166,22 @@
     "stock+roads SYNTHETIC, river+rain Open-Meteo"
    ],
    [
+    "P5",
+    "Unguwar Rimi PHC",
+    "2022-08-08",
+    "60",
+    "5.666666666666667",
+    "10.588235294117647",
+    "R5",
+    "track",
+    "3000.0",
+    "1975.97",
+    "1024.03",
+    "2022-08-14",
+    "3.5",
+    "stock+roads SYNTHETIC, river+rain Open-Meteo"
+   ],
+   [
     "P6",
     "Dutsen Kura PHC",
     "2022-07-04",
@@ -115,6 +195,22 @@
     null,
     null,
     "31.7",
+    "stock+roads SYNTHETIC, river+rain Open-Meteo"
+   ],
+   [
+    "P6",
+    "Dutsen Kura PHC",
+    "2022-08-08",
+    "200",
+    "7.333333333333333",
+    "27.272727272727273",
+    "R6",
+    "laterite",
+    null,
+    "1975.97",
+    null,
+    null,
+    "3.5",
     "stock+roads SYNTHETIC, river+rain Open-Meteo"
    ],
    [
@@ -134,6 +230,22 @@
     "stock+roads SYNTHETIC, river+rain Open-Meteo"
    ],
    [
+    "P7",
+    "Rafin Gora PHC",
+    "2022-08-08",
+    "300",
+    "9.0",
+    "33.333333333333336",
+    "R7",
+    "laterite",
+    "9000.0",
+    "1975.97",
+    "7024.03",
+    "2022-09-12",
+    "3.5",
+    "stock+roads SYNTHETIC, river+rain Open-Meteo"
+   ],
+   [
     "P8",
     "Kasuwa PHC",
     "2022-07-04",
@@ -148,9 +260,25 @@
     null,
     "31.7",
     "stock+roads SYNTHETIC, river+rain Open-Meteo"
+   ],
+   [
+    "P8",
+    "Kasuwa PHC",
+    "2022-08-08",
+    "850",
+    "11.0",
+    "77.27272727272727",
+    "R8",
+    "tarred",
+    null,
+    "1975.97",
+    null,
+    null,
+    "3.5",
+    "stock+roads SYNTHETIC, river+rain Open-Meteo"
    ]
   ],
-  "total": 8,
-  "timeUsed": 70303
+  "total": 16,
+  "timeUsed": 57415
  }
 }

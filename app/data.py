@@ -12,7 +12,7 @@ from app.adapters import zetaris
 
 SCENARIO = json.loads((config.ROOT / "config" / "kafin.json").read_text(encoding="utf-8"))
 
-RIVER_TABLE = "k2_src.glofas_lokoja_2022"
+RIVER_TABLE = "stocksense_pg.river_daily"  # Postgres copy of the GloFAS response (infra/seed_pg.py)
 
 
 class NoSnapshot(ValueError):
@@ -76,11 +76,8 @@ def load_clinics(as_of: str, clinic_ids: list[str] | None = None) -> list[Clinic
 def river_sql(as_of: str, table: str = RIVER_TABLE) -> str:
     """Daily GloFAS discharge up to and including as_of: no later data."""
     date.fromisoformat(as_of)  # as_of is validated before it reaches SQL
-    return (
-        "SELECT CAST(t AS DATE) AS obs_date, CAST(g.daily.river_discharge[i] AS DOUBLE) AS discharge_m3s "
-        f"FROM {table} g LATERAL VIEW posexplode(g.daily.time) p AS i, t "
-        f"WHERE CAST(t AS DATE) <= DATE '{as_of}' ORDER BY obs_date"
-    )
+    return (f"SELECT CAST(obs_date AS STRING) AS obs_date, discharge_m3s FROM {table} "
+            f"WHERE river_point = 'LOKOJA' AND obs_date <= DATE '{as_of}' ORDER BY obs_date")
 
 
 def river_on_sql(as_of: str, table: str = RIVER_TABLE) -> str:

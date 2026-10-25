@@ -1,0 +1,207 @@
+{
+ "http_status": 200,
+ "body": {
+  "run_id": "e026db1f01da",
+  "as_of": "2022-08-08",
+  "sample_mode": true,
+  "status": "ok",
+  "roads": {
+   "P1": {
+    "clinic_id": "P1",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1975.97,
+    "slope_m3s_per_day": 84.63,
+    "reason": "road not flood-prone"
+   },
+   "P2": {
+    "clinic_id": "P2",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1975.97,
+    "slope_m3s_per_day": 84.63,
+    "reason": "road not flood-prone"
+   },
+   "P3": {
+    "clinic_id": "P3",
+    "closes_in_days": 23.9,
+    "confidence": 0.98,
+    "river_m3s": 1975.97,
+    "slope_m3s_per_day": 84.63,
+    "reason": "at up to +85/day, could reach 4000 in 23.9 days"
+   },
+   "P4": {
+    "clinic_id": "P4",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1975.97,
+    "slope_m3s_per_day": 84.63,
+    "reason": "road not flood-prone"
+   },
+   "P5": {
+    "clinic_id": "P5",
+    "closes_in_days": 12.1,
+    "confidence": 0.98,
+    "river_m3s": 1975.97,
+    "slope_m3s_per_day": 84.63,
+    "reason": "at up to +85/day, could reach 3000 in 12.1 days"
+   },
+   "P6": {
+    "clinic_id": "P6",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1975.97,
+    "slope_m3s_per_day": 84.63,
+    "reason": "road not flood-prone"
+   },
+   "P7": {
+    "clinic_id": "P7",
+    "closes_in_days": null,
+    "confidence": 0.98,
+    "river_m3s": 1975.97,
+    "slope_m3s_per_day": 84.63,
+    "reason": "at up to +85/day, 9000 is 83 days away (beyond 30)"
+   },
+   "P8": {
+    "clinic_id": "P8",
+    "closes_in_days": null,
+    "confidence": null,
+    "river_m3s": 1975.97,
+    "slope_m3s_per_day": 84.63,
+    "reason": "road not flood-prone"
+   }
+  },
+  "flags": {
+   "P1": [],
+   "P2": [
+    "below_safety"
+   ],
+   "P3": [
+    "below_safety",
+    "road_closing"
+   ],
+   "P4": [],
+   "P5": [
+    "below_safety",
+    "road_closing"
+   ],
+   "P6": [
+    "below_safety"
+   ],
+   "P7": [],
+   "P8": []
+  },
+  "plan": [
+   {
+    "kind": "transfer",
+    "to": "P5",
+    "qty": 90,
+    "cost": 4950,
+    "deliver_day": 1,
+    "source": "P4",
+    "why": "P4 has 90 above its keep level; 33 km via the LGA store"
+   },
+   {
+    "kind": "transfer",
+    "to": "P5",
+    "qty": 150,
+    "cost": 4650,
+    "deliver_day": 1,
+    "source": "P8",
+    "why": "P8 has 150 above its keep level; 31 km via the LGA store"
+   },
+   {
+    "kind": "transfer",
+    "to": "P3",
+    "qty": 48,
+    "cost": 5700,
+    "deliver_day": 1,
+    "source": "P7",
+    "why": "P7 has 48 above its keep level; 38 km via the LGA store"
+   },
+   {
+    "kind": "transfer",
+    "to": "P3",
+    "qty": 262,
+    "cost": 3900,
+    "deliver_day": 1,
+    "source": "P4",
+    "why": "P4 has 262 above its keep level; 26 km via the LGA store"
+   },
+   {
+    "kind": "transfer",
+    "to": "P2",
+    "qty": 84,
+    "cost": 2700,
+    "deliver_day": 1,
+    "source": "P8",
+    "why": "P8 has 84 above its keep level; 18 km via the LGA store"
+   },
+   {
+    "kind": "purchase",
+    "to": "P2",
+    "qty": 46,
+    "cost": 0,
+    "deliver_day": 8,
+    "source": "S2",
+    "why": "from the S2 order, delivered via the LGA store"
+   },
+   {
+    "kind": "purchase",
+    "to": "P6",
+    "qty": 6,
+    "cost": 0,
+    "deliver_day": 8,
+    "source": "S2",
+    "why": "from the S2 order, delivered via the LGA store"
+   }
+  ],
+  "held": [],
+  "purchase_order": {
+   "supplier": "S2",
+   "qty": 200,
+   "cost": 500000,
+   "lead_days": 7,
+   "why": "cheapest whole order: gap 52, min order 200 at ₦2500/course"
+  },
+  "unmet": {},
+  "violations": [],
+  "checks": [
+   {
+    "check": "P2 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P3 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P4 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P5 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P6 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P7 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "P8 stock and daily use",
+    "ok": true
+   },
+   {
+    "check": "river discharge on as_of",
+    "ok": true
+   }
+  ],
+  "cost": 521900,
+  "retries": 1,
+  "trace": "logs/trace-e026db1f01da.jsonl"
+ }
+}
