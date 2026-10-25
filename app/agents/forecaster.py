@@ -1,8 +1,10 @@
 """Forecaster: when will each clinic's road close?
 
-Uses only river readings up to as_of: a least-squares trend over the last
-7 days, extrapolated to each road's closure threshold. Confidence is the
-trend's R² (1.0 when the river is already above the threshold).
+Uses only river readings up to as_of. Days to each road's threshold are
+estimated at the fastest daily rise of the last 7 days, not the average
+trend: the 2022 surge outran both (eval/backtest_forecaster.py). Even so the
+date runs late, so it is a warning only; the Critic never relies on it.
+Confidence is the R² of the 7-day trend: how steady the rise is.
 """
 
 from __future__ import annotations
@@ -44,7 +46,8 @@ def forecast(clinics: list[Clinic], river: list[tuple[str, float]], horizon_days
         raise ValueError("no river readings up to as_of")
     recent = [q for _, q in river[-TREND_DAYS:]]
     now = recent[-1]
-    slope, r2 = _trend(recent)
+    _, r2 = _trend(recent)
+    slope = max((b - a for a, b in zip(recent, recent[1:])), default=0.0)
     out = {}
     for c in clinics:
         thr = c.closes_above_m3s
@@ -57,8 +60,8 @@ def forecast(clinics: list[Clinic], river: list[tuple[str, float]], horizon_days
         else:
             days = (thr - now) / slope
             if days > horizon_days:
-                f = (None, round(r2, 2), f"at +{slope:.0f}/day, {thr:.0f} is {days:.0f} days away (beyond {horizon_days})")
+                f = (None, round(r2, 2), f"at up to +{slope:.0f}/day, {thr:.0f} is {days:.0f} days away (beyond {horizon_days})")
             else:
-                f = (round(days, 1), round(r2, 2), f"at +{slope:.0f}/day, reaches {thr:.0f} in {days:.1f} days")
+                f = (round(days, 1), round(r2, 2), f"at up to +{slope:.0f}/day, could reach {thr:.0f} in {days:.1f} days")
         out[c.clinic_id] = RoadForecast(c.clinic_id, f[0], f[1], now, round(slope, 2), f[2])
     return out

@@ -6,6 +6,7 @@ constraints the Critic hands back on a retry:
 
   no_purchase_to: clinics a purchase cannot reach in time; they may then
                   draw donors down to safety stock instead of safety + resupply
+  unreachable:    clinics whose road is already shut; nothing is planned to them
   avoid_suppliers: suppliers memory or the user ruled out
 """
 
@@ -54,6 +55,7 @@ def plan(clinics: list[Clinic], roads: dict[str, RoadForecast], cfg: dict, const
     constraints = constraints or {}
     no_purchase = set(constraints.get("no_purchase_to", []))
     avoid = set(constraints.get("avoid_suppliers", []))
+    unreachable = set(constraints.get("unreachable", []))
     out = Plan()
 
     known = [c for c in clinics if c.stock is not None]
@@ -65,14 +67,19 @@ def plan(clinics: list[Clinic], roads: dict[str, RoadForecast], cfg: dict, const
     for c in known:
         want = min(c.capacity, math.ceil(target_days(roads[c.clinic_id], cfg) * c.daily_use))
         if want > c.stock:
-            need[c.clinic_id] = want - c.stock
+            if c.clinic_id in unreachable:
+                out.unmet[c.clinic_id] = want - c.stock
+            else:
+                need[c.clinic_id] = want - c.stock
 
     by_id = {c.clinic_id: c for c in known}
     keep_days = cfg["safety_stock_days"] + cfg["donor_keep_extra_days"]
-    spare = {c.clinic_id: c.stock - math.ceil(keep_days * c.daily_use) for c in known if c.clinic_id not in need}
-    spare = {k: v for k, v in spare.items() if v > 0}
-    # Only clinics a purchase can't reach may dig into donors' resupply buffer.
-    buffer = {c.clinic_id: math.ceil(cfg["donor_keep_extra_days"] * c.daily_use) for c in known if c.clinic_id not in need}
+    donors = [c for c in known if c.clinic_id not in need and c.clinic_id not in unreachable]
+    spare = {c.clinic_id: max(0, c.stock - math.ceil(keep_days * c.daily_use)) for c in donors}
+    # Only clinics a purchase can't reach may dig into donors' resupply buffer,
+    # and never below safety stock.
+    buffer = {c.clinic_id: max(0, c.stock - math.ceil(cfg["safety_stock_days"] * c.daily_use)) - spare[c.clinic_id]
+              for c in donors}
 
     def urgency(cid: str):
         r = roads[cid]

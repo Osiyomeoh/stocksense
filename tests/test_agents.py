@@ -58,15 +58,27 @@ class PlannerCriticTests(unittest.TestCase):
         self.assertEqual([h["clinic"] for h in p.holds], ["P6"])
         self.assertNotIn("P6", {l.to for l in p.lines})
 
-    def test_plan_passes_the_critic_and_keeps_donors_safe(self):
-        p = planner.plan(self.clinics, self.roads, data.SCENARIO)
-        self.assertEqual(critic.review(p, self.clinics, self.roads, data.SCENARIO), [])
-        # rising river: gap 316, so S2 (316 x 2500 = 790k) beats S3 (min 500 x 2000 = 1M)
-        self.assertEqual((p.order["supplier"], p.order["cost"]), ("S2", 790000))
+    def test_flagged_roads_get_transfers_only_after_one_retry(self):
+        cfg = data.SCENARIO
+        first = planner.plan(self.clinics, self.roads, cfg)
+        v = critic.review(first, self.clinics, self.roads, cfg)
+        self.assertEqual([x["clinic"] for x in v], ["P3"])  # P5 is filled by transfers; P3 gets an 8-day purchase
+        retry = planner.plan(self.clinics, self.roads, cfg, {"no_purchase_to": ["P3"]})
+        self.assertEqual(critic.review(retry, self.clinics, self.roads, cfg), [])
+        self.assertTrue(all(l.kind == "transfer" for l in retry.lines if l.to in ("P3", "P5")))
+        # Donors may now go down to safety stock for P3, which covers everyone: no purchase
+        self.assertEqual((retry.order, retry.unmet), (None, {}))
+
+    def test_shut_road_gets_nothing_and_is_reported_unmet(self):
+        roads = dict(self.roads)
+        roads["P5"] = forecaster.RoadForecast("P5", 0.0, 1.0, 3100, 100, "test")
+        p = planner.plan(self.clinics, roads, data.SCENARIO, {"unreachable": ["P5"]})
+        self.assertNotIn("P5", {l.to for l in p.lines})
+        self.assertIn("P5", p.unmet)
 
     def test_late_purchase_to_a_closing_road_is_rejected_with_a_fix(self):
         roads = dict(self.roads)
-        roads["P5"] = forecaster.RoadForecast("P5", 5.0, 0.9, 1600, 100, "test")
+        roads["P5"] = forecaster.RoadForecast("P5", 20.0, 0.9, 1600, 100, "test")  # 20 days is still too risky
         p = planner.Plan(lines=[planner.Line("purchase", "P5", 100, 0, 8, "S3", "test")])
         v = critic.review(p, self.clinics, roads, data.SCENARIO)
         self.assertEqual([(x["rule"], x["fix"]) for x in v], [("road_open_on_delivery", {"no_purchase_to": ["P5"]})])

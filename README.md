@@ -24,10 +24,10 @@ Zetaris USL ──► Forecaster ──► Sentinels ──► Planner ⇄ Criti
 | Agent | Does | Code |
 |---|---|---|
 | DataAgent | Reads `clinic_risk` (the USL join) and the river series from Zetaris | `app/data.py` |
-| Forecaster | Fits a 7-day trend to river readings **up to `as_of` only** and estimates when each road's threshold is reached within 30 days. Confidence is the trend's R² | `app/agents/forecaster.py` |
+| Forecaster | Using river readings **up to `as_of` only**, flags each road that could reach its closure threshold within 30 days at the fastest daily rise of the last 7. A warning, not a date (see the backtest below). Confidence is the R² of the 7-day trend | `app/agents/forecaster.py` |
 | Sentinels | One per clinic: flags below safety stock, missing reading, road closing | `app/agents/sentinels.py` |
 | Planner | Transfers from clinics with spare stock first, then the cheapest whole purchase order | `app/agents/planner.py` |
-| Critic | Checks donor safety, capacity, budget, and that each delivery arrives before the road closes. A rejection carries the constraint that fixes it back to the Planner | `app/agents/critic.py` |
+| Critic | Checks donor safety, capacity, budget, and that a flagged road gets only next-day transfers. A rejection carries the constraint that fixes it back to the Planner | `app/agents/critic.py` |
 | Evaluator | Re-queries Zetaris for every number a plan line rests on; any line it can't re-verify goes on **HOLD** | `app/agents/evaluator.py` |
 | Coordinator | [FILL: Nightshift / Nemotron, not built yet] | |
 | Memory | [FILL: H-MEM, not built yet] | |
@@ -60,6 +60,18 @@ Errors come back as `{"error": {"type", "message"}}`: `bad_input` / `bad_json` (
 | `01-plan-2022-07-04.json` | a full plan: 4 transfers, 1 purchase, P6 on HOLD (no stock reading) |
 | `02-no-snapshot.json` | a date with no stock snapshot: structured 404, no guessing |
 | `03-bad-date.json` | bad input: structured 400 |
+
+## Can the road forecast be trusted?
+
+Not as a date. `python3 eval/backtest_forecaster.py` replays the Forecaster on every day of the real 2022 GloFAS season at Lokoja, using only readings up to that day (road thresholds are SYNTHETIC):
+
+| Road | Actually closed | First warning | Days in the last 30 not flagged | Days the forecast date was too late |
+|---|---|---|---|---|
+| P3 | 2022-08-28 | 2022-07-29, 30 days ahead | 9 | 5 of 21 |
+| P5 | 2022-08-14 | 2022-07-23, 22 days ahead | 9 | 13 of 21 |
+| P7 | 2022-09-12 | 2022-08-13, 30 days ahead | 12 | 6 of 18 |
+
+The river's August surge outruns any extrapolation from the week before. So a forecast closure is only a **warning**: once a road is flagged, the Critic accepts only next-day transfers to that clinic, never a 7-day purchase, and a road already shut gets nothing. A shortfall is reported, not hidden.
 
 ## What the USL did for us
 

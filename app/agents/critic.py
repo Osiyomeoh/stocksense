@@ -33,12 +33,18 @@ def review(plan: Plan, clinics: list[Clinic], roads: dict[str, RoadForecast], cf
             violations.append({"rule": "capacity", "clinic": cid,
                                "reason": f"{cid} would hold {stock}, over its capacity {c.capacity}"})
 
+    # The closure date runs late in backtests, so a flagged road takes only
+    # next-day transfers; a road already shut takes nothing.
     for l in plan.lines:
         closes = roads[l.to].closes_in_days
-        if closes is not None and l.deliver_day >= closes:
+        if closes == 0:
+            violations.append({"rule": "road_closed", "clinic": l.to,
+                               "reason": f"{l.source}→{l.to}: the road is already shut",
+                               "fix": {"unreachable": [l.to]}})
+        elif closes is not None and l.deliver_day > cfg["transfer_delivery_days"]:
             violations.append({"rule": "road_open_on_delivery", "clinic": l.to,
-                               "reason": f"{l.source}→{l.to} arrives day {l.deliver_day}, road forecast to close in {closes} days",
-                               "fix": {"no_purchase_to": [l.to]} if l.kind == "purchase" else None})
+                               "reason": f"{l.source}→{l.to} arrives day {l.deliver_day}; road could close within {closes} days",
+                               "fix": {"no_purchase_to": [l.to]}})
 
     if plan.cost > cfg["budget_per_quarter"]:
         violations.append({"rule": "budget", "reason": f"₦{plan.cost:,} is over the ₦{cfg['budget_per_quarter']:,} budget"})

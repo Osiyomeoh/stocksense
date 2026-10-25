@@ -1,7 +1,7 @@
 {
  "http_status": 200,
  "body": {
-  "run_id": "1a636d807dbf",
+  "run_id": "5cefb0bb2dc7",
   "as_of": "2022-07-04",
   "sample_mode": true,
   "status": "needs_review",
@@ -11,7 +11,7 @@
     "closes_in_days": null,
     "confidence": null,
     "river_m3s": 1058.25,
-    "slope_m3s_per_day": -10.4,
+    "slope_m3s_per_day": -2.5,
     "reason": "road not flood-prone"
    },
    "P2": {
@@ -19,7 +19,7 @@
     "closes_in_days": null,
     "confidence": null,
     "river_m3s": 1058.25,
-    "slope_m3s_per_day": -10.4,
+    "slope_m3s_per_day": -2.5,
     "reason": "road not flood-prone"
    },
    "P3": {
@@ -27,7 +27,7 @@
     "closes_in_days": null,
     "confidence": 0.94,
     "river_m3s": 1058.25,
-    "slope_m3s_per_day": -10.4,
+    "slope_m3s_per_day": -2.5,
     "reason": "river 1058 not rising; closes above 4000"
    },
    "P4": {
@@ -35,7 +35,7 @@
     "closes_in_days": null,
     "confidence": null,
     "river_m3s": 1058.25,
-    "slope_m3s_per_day": -10.4,
+    "slope_m3s_per_day": -2.5,
     "reason": "road not flood-prone"
    },
    "P5": {
@@ -43,7 +43,7 @@
     "closes_in_days": null,
     "confidence": 0.94,
     "river_m3s": 1058.25,
-    "slope_m3s_per_day": -10.4,
+    "slope_m3s_per_day": -2.5,
     "reason": "river 1058 not rising; closes above 3000"
    },
    "P6": {
@@ -51,7 +51,7 @@
     "closes_in_days": null,
     "confidence": null,
     "river_m3s": 1058.25,
-    "slope_m3s_per_day": -10.4,
+    "slope_m3s_per_day": -2.5,
     "reason": "road not flood-prone"
    },
    "P7": {
@@ -59,7 +59,7 @@
     "closes_in_days": null,
     "confidence": 0.94,
     "river_m3s": 1058.25,
-    "slope_m3s_per_day": -10.4,
+    "slope_m3s_per_day": -2.5,
     "reason": "river 1058 not rising; closes above 9000"
    },
    "P8": {
@@ -67,7 +67,7 @@
     "closes_in_days": null,
     "confidence": null,
     "river_m3s": 1058.25,
-    "slope_m3s_per_day": -10.4,
+    "slope_m3s_per_day": -2.5,
     "reason": "road not flood-prone"
    }
   },
@@ -179,6 +179,6 @@
   ],
   "cost": 514850,
   "retries": 0,
-  "trace": "logs/trace-1a636d807dbf.jsonl"
+  "trace": "logs/trace-5cefb0bb2dc7.jsonl"
  }
 }
