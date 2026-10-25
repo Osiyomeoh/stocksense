@@ -17,8 +17,9 @@ from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
-from app import config
+from app import config, pipeline
 from app.adapters import cache, nightshift, zetaris
+from app.data import NoSnapshot
 from app.trace import Trace
 
 
@@ -40,16 +41,14 @@ def run(payload: Any) -> dict[str, Any]:
     args = parse_input(payload)
     run_id = uuid.uuid4().hex[:12]
     trace = Trace(run_id)
-    sql = f"SELECT * FROM {config.CLINIC_RISK_TABLE} ORDER BY clinic_id"
-    rows = zetaris.query(sql)
-    trace.log("DataAgent", "zetaris.query", sql, f"{len(rows)} rows", target_agent="Planner")
-    # The stored snapshot is 2022-07-04; later sessions add as_of to the USL query.
+    result = pipeline.run(args["as_of"], trace)
     return {"run_id": run_id, "as_of": args["as_of"], "sample_mode": config.SAMPLE_MODE,
-            "clinic_risk": rows, "trace": str(trace.path.relative_to(config.ROOT))}
+            **result, "trace": str(trace.path.relative_to(config.ROOT))}
 
 
 ERRORS: dict[type, tuple[int, str]] = {
     InputError: (400, "bad_input"),
+    NoSnapshot: (404, "no_snapshot"),
     json.JSONDecodeError: (400, "bad_json"),
     cache.CacheMiss: (503, "sample_cache_miss"),
     zetaris.ZetarisError: (502, "zetaris_unavailable"),

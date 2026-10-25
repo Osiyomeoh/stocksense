@@ -19,11 +19,13 @@ class RunTests(unittest.TestCase):
         self.assertEqual((status, body["error"]["type"]), (400, "bad_json"))
 
     def test_sample_mode_replays_cache_and_writes_a_full_trace(self):
-        recorded = {"headers": ["clinic_id", "clinic_name"], "data": [["P1", "Clinic"]]}
-        with mock.patch.object(config, "SAMPLE_MODE", True), mock.patch.object(cache, "load", return_value=recorded):
+        clinics = json.loads((config.SAMPLE_DIR / "zetaris" / "4a8de106818241d8.json").read_text())["response"]
+        river = {"headers": ["obs_date", "discharge_m3s"], "data": [["2022-07-04", "1058.25"]]}
+        replay = lambda kind, req: river if "glofas" in req["sql"] else clinics
+        with mock.patch.object(config, "SAMPLE_MODE", True), mock.patch.object(cache, "load", side_effect=replay):
             status, body = run.handle('{"as_of": "2022-07-04"}')
         self.assertEqual(status, 200)
-        self.assertEqual(body["clinic_risk"], [{"clinic_id": "P1", "clinic_name": "Clinic"}])
+        self.assertEqual(body["held"][-1]["clinic"], "P6")
         event = json.loads((config.ROOT / body["trace"]).read_text().splitlines()[0])
         self.assertEqual(tuple(event)[: len(FIELDS)], FIELDS)
 

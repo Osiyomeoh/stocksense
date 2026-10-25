@@ -1,0 +1,29 @@
+{
+  "_label": "SYNTHETIC. Kafin LGA planning assumptions (docs/SCENARIO.md), not real data. Stock, use and roads come from Zetaris; this file holds only what Zetaris does not.",
+  "lga": "Kafin",
+  "item": "ACT",
+  "safety_stock_days": 28,
+  "donor_keep_extra_days": 28,
+  "donor_keep_extra_days_note": "A donor also keeps the State CMS (S1) resupply lead time, 4 weeks, so a transfer never leaves it short before free stock can arrive.",
+  "road_risk_target_days": 60,
+  "road_risk_target_days_note": "A clinic whose road is forecast to close inside the horizon is stocked for 60 days, not 28, because it cannot be resupplied while the road is shut.",
+  "forecast_horizon_days": 30,
+  "transfer_delivery_days": 1,
+  "transfer_cost_per_km": 150,
+  "budget_per_quarter": 4000000,
+  "clinics": {
+    "P1": {"capacity": 1200, "km_to_store": 0},
+    "P2": {"capacity": 500, "km_to_store": 12},
+    "P3": {"capacity": 400, "km_to_store": 18},
+    "P4": {"capacity": 1000, "km_to_store": 8},
+    "P5": {"capacity": 300, "km_to_store": 25},
+    "P6": {"capacity": 350, "km_to_store": 15},
+    "P7": {"capacity": 450, "km_to_store": 20},
+    "P8": {"capacity": 1000, "km_to_store": 6}
+  },
+  "suppliers": {
+    "S1": {"name": "State CMS (govt)", "price": 0, "lead_days": 28, "min_order": 0, "available": false, "note": "free stock, allocated by the state, not orderable on demand"},
+    "S2": {"name": "Private distributor A", "price": 2500, "lead_days": 7, "min_order": 200},
+    "S3": {"name": "Private distributor B", "price": 2000, "lead_days": 7, "min_order": 500}
+  }
+}
