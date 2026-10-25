@@ -43,3 +43,8 @@ CLINIC_RISK_TABLE = os.environ.get("CLINIC_RISK_TABLE", "lightning.metastore.sto
 
 NIGHTSHIFT_URL = os.environ.get("NIGHTSHIFT_URL", "http://127.0.0.1:8088/v1").rstrip("/")
 NIGHTSHIFT_MODEL = os.environ.get("NIGHTSHIFT_MODEL", "meterless/auto")
+# Nightshift mints a local runtime token on first start; the app reads it from there.
+NIGHTSHIFT_TOKEN_FILE = Path(os.environ.get(
+    "NIGHTSHIFT_TOKEN_FILE",
+    Path.home() / "Library" / "Application Support" / "ai.meterless.nightshift.m1m4" / "runtime-token"))
+NIGHTSHIFT_APP = "stocksense"  # the meterless-app header Nightshift requires
