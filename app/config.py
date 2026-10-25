@@ -36,6 +36,7 @@ load_env()
 SAMPLE_MODE = flag("SAMPLE_MODE")
 SAMPLE_DIR = ROOT / "data" / "sample_cache"
 LOG_DIR = ROOT / "logs"
+HMEM_DIR = Path(os.environ.get("HMEM_DIR", ROOT / "data" / "memory"))
 
 ZETARIS_REST_URL = os.environ.get("ZETARIS_REST_URL", "http://localhost:8888/api/v1.0").rstrip("/")
 ZETARIS_ORG_ID = os.environ.get("ZETARIS_ORG_ID") or "1"  # an empty .env line means the default

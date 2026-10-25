@@ -4,3 +4,4 @@ logs/
 __pycache__/
 killtests/k3/hmem/
 node_modules/
+data/memory/

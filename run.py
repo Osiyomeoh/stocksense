@@ -2,6 +2,7 @@
 
   python3 run.py '{"as_of": "2022-07-04"}'     # one run, JSON to stdout
   python3 run.py --serve                        # POST /run on 0.0.0.0:8080
+  python3 run.py --feedback "S2 was late again"  # teach the Memory Keeper (also POST /feedback)
 
 Errors come back as {"error": {"type", "message"}} with a non-zero exit code
 (CLI) or a 4xx/5xx status (HTTP).
@@ -18,7 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 from app import config, pipeline
-from app.adapters import cache, nightshift, zetaris
+from app.adapters import cache, hmem, nightshift, zetaris
+from app.agents import memory_keeper
 from app.data import NoSnapshot
 from app.trace import Trace
 
@@ -53,12 +55,20 @@ ERRORS: dict[type, tuple[int, str]] = {
     cache.CacheMiss: (503, "sample_cache_miss"),
     zetaris.ZetarisError: (502, "zetaris_unavailable"),
     nightshift.NightshiftError: (502, "nightshift_unavailable"),
+    hmem.HMemError: (502, "hmem_unavailable"),
 }
 
 
-def handle(raw: str) -> tuple[int, dict[str, Any]]:
+def feedback(payload: Any) -> dict[str, Any]:
+    note = payload.get("note") if isinstance(payload, dict) else None
+    if not isinstance(note, str) or not note.strip():
+        raise InputError('feedback must be {"note": "<the pharmacist\'s edit>"}')
+    return {"note": note, "changes": memory_keeper.learn(note)}
+
+
+def handle(raw: str, fn=run) -> tuple[int, dict[str, Any]]:
     try:
-        return 200, run(json.loads(raw or "{}"))
+        return 200, fn(json.loads(raw or "{}"))
     except tuple(ERRORS) as e:
         status, kind = next(v for t, v in ERRORS.items() if isinstance(e, t))
         return status, {"error": {"type": kind, "message": str(e)}}
@@ -83,10 +93,11 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": {"type": "not_found", "message": "GET / or /trace/<run_id>; POST /run"}})
 
     def do_POST(self) -> None:
-        if self.path != "/run":
-            return self._send(404, {"error": {"type": "not_found", "message": "POST /run"}})
+        fn = {"/run": run, "/feedback": feedback}.get(self.path)
+        if fn is None:
+            return self._send(404, {"error": {"type": "not_found", "message": "POST /run or /feedback"}})
         length = int(self.headers.get("Content-Length") or 0)
-        self._send(*handle(self.rfile.read(length).decode()))
+        self._send(*handle(self.rfile.read(length).decode(), fn))
 
     def _send(self, status: int, body: dict[str, Any]) -> None:
         data = json.dumps(body, default=str).encode()
@@ -102,7 +113,10 @@ def main(argv: list[str]) -> int:
         port = int(os.environ.get("PORT", "8080"))
         print(f"POST /run on 0.0.0.0:{port} (SAMPLE_MODE={config.SAMPLE_MODE})", file=sys.stderr)
         ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
-    status, body = handle(argv[0] if argv else sys.stdin.read())
+    if argv[:1] == ["--feedback"]:
+        status, body = handle(json.dumps({"note": " ".join(argv[1:])}), feedback)
+    else:
+        status, body = handle(argv[0] if argv else sys.stdin.read())
     print(json.dumps(body, indent=1, default=str))
     return 0 if status == 200 else 1
 

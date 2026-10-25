@@ -1,0 +1,5 @@
+Third-party code: the H-MEM reference implementation by Meterless,
+copied unmodified from engines/hmem/reference/src of
+https://github.com/meterless/meterless (fetched with
+`npx degit meterless/meterless/engines/hmem`, Oct 24 2026).
+Licensed under Apache-2.0; see LICENSE in this directory.

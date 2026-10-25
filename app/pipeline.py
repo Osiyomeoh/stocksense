@@ -1,11 +1,12 @@
-"""One planning run: Forecaster → Sentinels → Planner ⇄ Critic → Evaluator → Coordinator."""
+"""One planning run: Forecaster → Sentinels → Memory Keeper → Planner ⇄ Critic → Evaluator → Coordinator."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from app import data
-from app.agents import coordinator, critic, evaluator, forecaster, planner, sentinels
+from app.agents import coordinator, critic, evaluator, forecaster, memory_keeper, planner, sentinels
+from app.adapters import hmem
 from app.trace import Trace
 
 MAX_RETRIES = 2
@@ -30,6 +31,19 @@ def run(as_of: str, trace: Trace, constraints: dict | None = None) -> dict[str, 
                   status="hold" if "missing_reading" in f else "ok")
 
     constraints = {k: list(v) for k, v in (constraints or {}).items()}
+    try:
+        memory = memory_keeper.recall()
+    except hmem.HMemError as e:
+        memory = {"avoid": [], "escalate": [], "memories": [], "error": str(e)}
+        trace.log("MemoryKeeper", "hmem.recall", "supplier", f"skipped: {e}", target_agent="Planner", status="fallback")
+    else:
+        for m in memory["memories"]:
+            applied = m["confidence"] >= memory_keeper.TRUST
+            trace.log("MemoryKeeper", "hmem.recall", m["id"], f"{m['content']} (confidence {m['confidence']:.2f})",
+                      target_agent="Planner" if applied else "Pharmacist", confidence=m["confidence"],
+                      status="ok" if applied else "escalated")
+    if memory["avoid"]:
+        constraints["avoid_suppliers"] = sorted(set(constraints.get("avoid_suppliers", [])) | set(memory["avoid"]))
     for attempt in range(MAX_RETRIES + 1):
         draft = planner.plan(clinics, roads, cfg, constraints)
         trace.log("Planner", "draft", str(constraints), f"{len(draft.lines)} lines, ₦{draft.cost:,}",
@@ -62,6 +76,7 @@ def run(as_of: str, trace: Trace, constraints: dict | None = None) -> dict[str, 
         "checks": result["checks"],
         "cost": draft.cost,
         "retries": attempt,
+        "memory": memory,
     }
 
     b = coordinator.brief(out)

@@ -86,6 +86,13 @@ function render(b, events) {
     <div class="stat"><b>${b.retries}</b><span>Critic retries</span></div>
   </div>
   ${b.briefing ? `<div class="panel"><h2>Briefing <span class="muted">${b.briefing.source === "nemotron" ? esc(b.briefing.model) : "template: " + esc(b.briefing.reason)}</span></h2><p>${esc(b.briefing.text)}</p></div>` : ""}
+  <div class="panel"><h2>Memory <span class="muted">H-MEM: notes at ≥0.70 confidence are applied, lower ones are asked</span></h2>${
+    (b.memory || {}).error ? `<p class="muted">H-MEM unavailable: ${esc(b.memory.error)}</p>` :
+    ((b.memory || {}).memories || []).length ? table([
+      ["Memory", (m) => esc(m.content)], ["Confidence", (m) => esc(m.confidence.toFixed(2)), "num"],
+      ["Effect", (m) => m.confidence >= 0.7 ? "applied: supplier avoided" : '<span class="chip warn">confirm with pharmacist</span>'],
+    ], b.memory.memories) : '<p class="muted">No supplier notes yet.</p>'}
+    <form id="fb"><input id="note" placeholder="Edit note, e.g. S2 was late again, use S3" style="flex:1;min-width:220px;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)"><button type="submit">Remember</button><span id="fbmsg" class="muted"></span></form></div>
   <div class="panel"><h2>Roads and flags</h2>${table([
     ["Clinic", (r) => esc(r.clinic_id)],
     ["Flags", (r) => (b.flags[r.clinic_id] || []).map((f) => `<span class="chip ${FLAG[f] || ""}">${esc(f.replace("_", " "))}</span>`).join("") || '<span class="muted">none</span>'],
@@ -105,6 +112,12 @@ function render(b, events) {
     ["Agent", (e) => esc(e.agent_name)], ["Action", (e) => esc(e.action)], ["Output", (e) => esc(e.output_summary)],
     ["→", (e) => esc(e.target_agent)], ["Retry", (e) => esc(e.retry_count), "num"], ["Status", (e) => esc(e.status)],
   ], events)}</div>`;
+  $("#fb").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const r = await fetch("/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: $("#note").value }) });
+    const f = await r.json();
+    $("#fbmsg").textContent = f.error ? f.error.message : (f.changes.map((c) => `${c.action.replace("_", " ")} ${c.supplier} (${c.confidence.toFixed(2)})`).join(", ") || "no known supplier in that note") + ". Plan again to apply.";
+  });
 }
 
 $("#f").addEventListener("submit", async (ev) => {
