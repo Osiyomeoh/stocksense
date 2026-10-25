@@ -1,7 +1,7 @@
 {
  "http_status": 200,
  "body": {
-  "run_id": "e026db1f01da",
+  "run_id": "bb21ceda7d7f",
   "as_of": "2022-08-08",
   "sample_mode": true,
   "status": "ok",
@@ -202,6 +202,12 @@
   ],
   "cost": 521900,
   "retries": 1,
-  "trace": "logs/trace-e026db1f01da.jsonl"
+  "briefing": {
+   "text": "Clinics P3 and P5 flag below_safety and road_closing; P2 and P6 flag below_safety only. Roads: P3 at up to +85/day, could reach 4000 in 23.9 days; P5 at up to +85/day, could reach 3000 in 12.1 days. Transfers day 1: P4→P5 90, P8→P5 150, P7→P3 48, P4→P3 262, P8→P2 84. Purchases from S2: 46 to P2 and 6 to P6, deliver day 8. Purchase order S2 200 qty at cost 500000 naira, lead 7 days. Total cost 521900 naira. Held none, unmet none. Approve, edit or reject each line.",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "source": "nemotron",
+   "reason": "all numbers match the plan"
+  },
+  "trace": "logs/trace-bb21ceda7d7f.jsonl"
  }
 }

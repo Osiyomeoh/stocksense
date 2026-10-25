@@ -85,6 +85,7 @@ function render(b, events) {
     <div class="stat"><b>${held.length}</b><span>on HOLD</span></div>
     <div class="stat"><b>${b.retries}</b><span>Critic retries</span></div>
   </div>
+  ${b.briefing ? `<div class="panel"><h2>Briefing <span class="muted">${b.briefing.source === "nemotron" ? esc(b.briefing.model) : "template: " + esc(b.briefing.reason)}</span></h2><p>${esc(b.briefing.text)}</p></div>` : ""}
   <div class="panel"><h2>Roads and flags</h2>${table([
     ["Clinic", (r) => esc(r.clinic_id)],
     ["Flags", (r) => (b.flags[r.clinic_id] || []).map((f) => `<span class="chip ${FLAG[f] || ""}">${esc(f.replace("_", " "))}</span>`).join("") || '<span class="muted">none</span>'],

@@ -29,8 +29,16 @@ Zetaris USL ──► Forecaster ──► Sentinels ──► Planner ⇄ Criti
 | Planner | Transfers from clinics with spare stock first, then the cheapest whole purchase order | `app/agents/planner.py` |
 | Critic | Checks donor safety, capacity, budget, and that a flagged road gets only next-day transfers. A rejection carries the constraint that fixes it back to the Planner | `app/agents/critic.py` |
 | Evaluator | Re-queries Zetaris for every number a plan line rests on; any line it can't re-verify goes on **HOLD** | `app/agents/evaluator.py` |
-| Coordinator | [FILL: Nightshift / Nemotron, not built yet] | |
+| Coordinator | Writes the pharmacist's briefing from the verified plan, on Nemotron through Nightshift. Every number in the text must appear in the plan; if one doesn't, or Nightshift is down, it falls back to a fixed template and the trace says why | `app/agents/coordinator.py` |
 | Memory | [FILL: H-MEM, not built yet] | |
+
+### Nemotron, through Nightshift
+
+| Agent | Model | Via |
+|---|---|---|
+| Coordinator | `nvidia/nemotron-3.5-lightning-30b-a3b` (override with `COORDINATOR_MODEL`) | Nightshift, `http://127.0.0.1:8088/v1` |
+
+The other agents are deterministic code: they decide, the model only words the decision. Each Coordinator call is a trace event whose `model` field names the model that answered. Nightshift receipt log: [FILL].
 
 Every step writes one trace event (`logs/trace-<run_id>.jsonl`) with: timestamp, run_id, agent_name, action, input_summary, output_summary, target_agent, model, confidence, retry_count, status.
 

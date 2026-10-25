@@ -3,8 +3,8 @@ import unittest
 from unittest import mock
 
 from app import config, data, pipeline
-from app.adapters import zetaris
-from app.agents import critic, forecaster, planner
+from app.adapters import nightshift, zetaris
+from app.agents import coordinator, critic, forecaster, planner
 from app.trace import Trace
 
 RECORDED = json.loads((config.SAMPLE_DIR / "zetaris" / "4a8de106818241d8.json").read_text())["response"]
@@ -85,9 +85,20 @@ class PlannerCriticTests(unittest.TestCase):
 
 
 class PipelineTests(unittest.TestCase):
-    def run_pipeline(self, river, **kw):
-        with mock.patch.object(zetaris, "query", fake_query(river, **kw)):
+    def run_pipeline(self, river, briefing="Approve, edit or reject each line.", **kw):
+        reply = {"text": briefing, "model": coordinator.MODEL, "raw": {}}
+        with mock.patch.object(zetaris, "query", fake_query(river, **kw)), \
+             mock.patch.object(nightshift, "chat", return_value=reply):
             return pipeline.run("2022-07-04", Trace("test-agents"))
+
+    def test_coordinator_briefing_comes_from_nemotron(self):
+        out = self.run_pipeline(RISING)
+        self.assertEqual((out["briefing"]["source"], out["briefing"]["model"]), ("nemotron", coordinator.MODEL))
+
+    def test_coordinator_rejects_a_number_not_in_the_plan(self):
+        out = self.run_pipeline(RISING, briefing="Buy 9999 courses. Approve, edit or reject each line.")
+        self.assertEqual(out["briefing"]["source"], "template")
+        self.assertIn("9999", out["briefing"]["reason"])
 
     def test_critic_retry_reroutes_a_closing_road_to_transfers(self):
         fast = [1000 + 300 * i for i in range(7)]  # 2800 now, P5 (3000) closes in under a day

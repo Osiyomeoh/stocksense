@@ -1,11 +1,11 @@
-"""One planning run: Forecaster → Sentinels → Planner ⇄ Critic → Evaluator."""
+"""One planning run: Forecaster → Sentinels → Planner ⇄ Critic → Evaluator → Coordinator."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from app import data
-from app.agents import critic, evaluator, forecaster, planner, sentinels
+from app.agents import coordinator, critic, evaluator, forecaster, planner, sentinels
 from app.trace import Trace
 
 MAX_RETRIES = 2
@@ -50,7 +50,7 @@ def run(as_of: str, trace: Trace, constraints: dict | None = None) -> dict[str, 
               f"{len(result['verified'])} verified, {len(result['held'])} held", target_agent="Coordinator",
               status="hold" if result["held"] else "ok")
 
-    return {
+    out = {
         "status": "needs_review" if violations or result["held"] or draft.holds or draft.unmet else "ok",
         "roads": {cid: r.__dict__ for cid, r in roads.items()},
         "flags": flags,
@@ -63,3 +63,9 @@ def run(as_of: str, trace: Trace, constraints: dict | None = None) -> dict[str, 
         "cost": draft.cost,
         "retries": attempt,
     }
+
+    b = coordinator.brief(out)
+    trace.log("Coordinator", "briefing", f"{len(out['plan'])} lines, ₦{out['cost']:,}", b["reason"],
+              target_agent="Pharmacist", model=b["model"], status="ok" if b["source"] == "nemotron" else "fallback")
+    out["briefing"] = b
+    return out

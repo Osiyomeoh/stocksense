@@ -1,7 +1,7 @@
 {
  "http_status": 200,
  "body": {
-  "run_id": "7051ccaf26f6",
+  "run_id": "e41945304066",
   "as_of": "2022-07-04",
   "sample_mode": true,
   "status": "needs_review",
@@ -179,6 +179,12 @@
   ],
   "cost": 514850,
   "retries": 0,
-  "trace": "logs/trace-7051ccaf26f6.jsonl"
+  "briefing": {
+   "text": "Status: needs_review. Plan: transfer 190 from P4 to P3 (day 1); transfer 23 from P8 to P3 (day 1); transfer 240 from P8 to P2 (day 1); transfer 21 from P8 to P5 (day 1); purchase 18 from S2 to P5 (day 8). Total ₦514,850. On HOLD: P6. Approve, edit or reject each line.",
+   "model": null,
+   "source": "template",
+   "reason": "Nightshift unavailable: SAMPLE_MODE: no cached nightshift response for this request; run once live to record it"
+  },
+  "trace": "logs/trace-e41945304066.jsonl"
  }
 }
