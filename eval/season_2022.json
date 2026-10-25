@@ -1,0 +1,218 @@
+{
+ "window": [
+  "2022-07-04",
+  "2022-10-31"
+ ],
+ "plan_every_days": 7,
+ "results": {
+  "naive": {
+   "stockout_days": 93,
+   "courses_short": 654,
+   "spend": 24541000,
+   "waited_for_road_days": 490,
+   "late_supplier_deliveries": 12,
+   "by_clinic": {
+    "P1": 0,
+    "P2": 8,
+    "P3": 16,
+    "P4": 0,
+    "P5": 50,
+    "P6": 8,
+    "P7": 5,
+    "P8": 6
+   },
+   "suppliers": [
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S2",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S2",
+    "S3",
+    "S3"
+   ]
+  },
+  "no_river": {
+   "stockout_days": 128,
+   "courses_short": 872,
+   "spend": 30246450,
+   "waited_for_road_days": 1036,
+   "late_supplier_deliveries": 5,
+   "by_clinic": {
+    "P1": 0,
+    "P2": 8,
+    "P3": 29,
+    "P4": 0,
+    "P5": 79,
+    "P6": 0,
+    "P7": 12,
+    "P8": 0
+   },
+   "suppliers": [
+    "S2",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2"
+   ]
+  },
+  "no_critic": {
+   "stockout_days": 111,
+   "courses_short": 731,
+   "spend": 40459900,
+   "waited_for_road_days": 1309,
+   "late_supplier_deliveries": 5,
+   "by_clinic": {
+    "P1": 0,
+    "P2": 8,
+    "P3": 16,
+    "P4": 0,
+    "P5": 79,
+    "P6": 0,
+    "P7": 8,
+    "P8": 0
+   },
+   "suppliers": [
+    "S2",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2"
+   ]
+  },
+  "no_held": {
+   "stockout_days": 73,
+   "courses_short": 498,
+   "spend": 18436750,
+   "waited_for_road_days": 140,
+   "late_supplier_deliveries": 3,
+   "by_clinic": {
+    "P1": 0,
+    "P2": 0,
+    "P3": 25,
+    "P4": 1,
+    "P5": 46,
+    "P6": 0,
+    "P7": 0,
+    "P8": 1
+   },
+   "suppliers": [
+    "S2",
+    "S3",
+    "S3",
+    "S2",
+    "S3",
+    "S3",
+    "S3",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2"
+   ]
+  },
+  "no_supplier_memory": {
+   "stockout_days": 73,
+   "courses_short": 498,
+   "spend": 17097400,
+   "waited_for_road_days": 77,
+   "late_supplier_deliveries": 4,
+   "by_clinic": {
+    "P1": 0,
+    "P2": 0,
+    "P3": 25,
+    "P4": 1,
+    "P5": 46,
+    "P6": 0,
+    "P7": 0,
+    "P8": 1
+   },
+   "suppliers": [
+    "S2",
+    "S3",
+    "S3",
+    "S2",
+    "S3",
+    "S3",
+    "S3",
+    "S3",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2"
+   ]
+  },
+  "stocksense": {
+   "stockout_days": 73,
+   "courses_short": 498,
+   "spend": 18279200,
+   "waited_for_road_days": 77,
+   "late_supplier_deliveries": 3,
+   "by_clinic": {
+    "P1": 0,
+    "P2": 0,
+    "P3": 25,
+    "P4": 1,
+    "P5": 46,
+    "P6": 0,
+    "P7": 0,
+    "P8": 1
+   },
+   "suppliers": [
+    "S2",
+    "S3",
+    "S3",
+    "S2",
+    "S3",
+    "S3",
+    "S3",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2",
+    "S2"
+   ]
+  }
+ }
+}

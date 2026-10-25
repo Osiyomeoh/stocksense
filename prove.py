@@ -26,6 +26,7 @@ from app.trace import FIELDS  # noqa: E402
 
 sys.path.insert(0, str(config.ROOT / "eval"))
 import backtest_forecaster  # noqa: E402
+import season  # noqa: E402
 
 README = (config.ROOT / "README.md").read_text()
 EXAMPLES = config.ROOT / "examples"
@@ -119,8 +120,20 @@ def backtest() -> None:
         claim(f"backtest row {road} matches the real 2022 river", row, got, want)
 
 
+def season_replay() -> None:
+    river = backtest_forecaster.load()
+    naive, ours = season.simulate("naive", river), season.simulate("stocksense", river)
+    fresh_memory()
+    claim("season: naive rule leaves 93 clinic-days without medicine", "| 93 | 654 | ₦24,541,000 |",
+          (naive["stockout_days"], naive["courses_short"], naive["spend"]), (93, 654, 24541000))
+    claim("season: StockSense leaves 73", "| **73** | **498** | **₦18,279,200** |",
+          (ours["stockout_days"], ours["courses_short"], ours["spend"]), (73, 498, 18279200))
+    claim("season: 20 fewer clinic-days, 26% less spend", "20 fewer clinic-days without medicine than the naive rule, at 26% less spend",
+          (naive["stockout_days"] - ours["stockout_days"], round(100 * (1 - ours["spend"] / naive["spend"]))), (20, 26))
+
+
 def main() -> int:
-    for section in (examples, july, august, memory, backtest):
+    for section in (examples, july, august, memory, backtest, season_replay):
         section()
     for ok, text, why in results:
         print(f"{'PASS' if ok else 'FAIL'}  {text}" + (f"  ({why})" if why else ""))

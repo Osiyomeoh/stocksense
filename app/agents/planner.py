@@ -107,17 +107,22 @@ def plan(clinics: list[Clinic], roads: dict[str, RoadForecast], cfg: dict, const
     blocked = {cid: n for cid, n in gap.items() if cid in no_purchase}
     out.unmet.update(blocked)
     gap = {cid: n for cid, n in gap.items() if cid not in no_purchase}
-    if gap:
+    # A purchase can't reach a blocked clinic in time, but it can reach the LGA
+    # store (always open), so the next run can send it on by next-day transfer.
+    staged = {cid: n for cid, n in blocked.items() if cid not in unreachable}
+    if gap or staged:
         options = [(sid, s) for sid, s in cfg["suppliers"].items() if s.get("available", True) and sid not in avoid]
         if not options:
             out.unmet.update(gap)
         else:
-            total = sum(gap.values())
+            total = sum(gap.values()) + sum(staged.values())
             # Cheapest whole order, not cheapest unit: a minimum order can outweigh the price.
             sid, s = min(options, key=lambda o: max(total, o[1]["min_order"]) * o[1]["price"])
             qty = max(total, s["min_order"])
             out.order = {"supplier": sid, "qty": qty, "cost": qty * s["price"], "lead_days": s["lead_days"],
                          "why": f"cheapest whole order: gap {total}, min order {s['min_order']} at ₦{s['price']}/course"}
+            if staged:
+                out.order["staged_at_store_for"] = staged
             for cid, n in sorted(gap.items(), key=lambda kv: urgency(kv[0])):
                 out.lines.append(Line("purchase", cid, n, 0, s["lead_days"] + cfg["transfer_delivery_days"], sid,
                                       f"from the {sid} order, delivered via the LGA store"))

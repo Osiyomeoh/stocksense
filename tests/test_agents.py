@@ -1,5 +1,6 @@
 import json
 import unittest
+from dataclasses import replace
 from unittest import mock
 
 from app import config, data, pipeline
@@ -76,6 +77,13 @@ class PlannerCriticTests(unittest.TestCase):
         p = planner.plan(self.clinics, roads, data.SCENARIO, {"unreachable": ["P5"]})
         self.assertNotIn("P5", {l.to for l in p.lines})
         self.assertIn("P5", p.unmet)
+
+    def test_blocked_gap_is_bought_into_the_store_not_sent_to_the_clinic(self):
+        clinics = [replace(c, stock=c.stock // 4) if c.stock else c for c in self.clinics]  # too little to donate
+        p = planner.plan(clinics, self.roads, data.SCENARIO, {"no_purchase_to": ["P3"]})
+        self.assertNotIn("P3", {l.to for l in p.lines if l.kind == "purchase"})
+        self.assertEqual(p.order["staged_at_store_for"], {"P3": p.unmet["P3"]})
+        self.assertGreaterEqual(p.order["qty"], sum(l.qty for l in p.lines if l.kind == "purchase") + p.unmet["P3"])
 
     def test_late_purchase_to_a_closing_road_is_rejected_with_a_fix(self):
         roads = dict(self.roads)

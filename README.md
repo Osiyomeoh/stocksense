@@ -15,13 +15,13 @@ Open Agent Hackathon 2026 entry, Track 1. StockSense joins three kinds of source
 
 No single source says which clinics will be cut off before their stock runs out. The join does.
 
-## Prove it (no keys, no cluster, about 5 seconds)
+## Prove it (no keys, no cluster, about 20 seconds)
 
 ```bash
 python3 prove.py
 ```
 
-It checks every number in this README twice: the README must state it, and a fresh run must produce it, replayed from the recorded Zetaris and Nightshift responses in `data/sample_cache`. The checks cover the four examples, the plan costs, the HOLD, the Critic's rejection, the Nemotron briefing's numbers, the H-MEM supplier switch and the backtest table. Each claim prints PASS or FAIL, and the exit code is non-zero if any fails. The test suite runs it too.
+It checks every number in this README twice: the README must state it, and a fresh run must produce it, replayed from the recorded Zetaris and Nightshift responses in `data/sample_cache`. The checks cover the four examples, the plan costs, the HOLD, the Critic's rejection, the Nemotron briefing's numbers, the H-MEM supplier switch, the backtest table and the season replay. Each claim prints PASS or FAIL, and the exit code is non-zero if any fails. The test suite runs it too.
 
 ## How a run works
 
@@ -109,7 +109,20 @@ Not as a date. `python3 eval/backtest_forecaster.py` replays the Forecaster on e
 
 Unflagged days came from the fastest-rise slope dipping inside the surge, which switched a warning off and on. So a warning is now **held** (`forecaster.hold`, stored in H-MEM by the Memory Keeper) for up to 30 days, counting down from its own estimate, unless the river falls below the reading that raised it. With that, P3 and P7 stay flagged on every day of the last 30; P5's 8 remaining days are before its first warning. Holding does not fix the date: it is still late on most of P5's days.
 
-The river's August surge outruns any extrapolation from the week before. So a forecast closure is only a **warning**: once a road is flagged, the Critic accepts only next-day transfers to that clinic, never a 7-day purchase, and a road already shut gets nothing. A shortfall is reported, not hidden.
+The river's August surge outruns any extrapolation from the week before. So a forecast closure is only a **warning**: once a road is flagged, the Critic accepts only next-day transfers to that clinic, never a 7-day purchase, and a road already shut gets nothing. A shortfall is reported, not hidden, and the Planner buys it into the LGA store (always open), so the next run can send it on by next-day transfer.
+
+## Does it keep medicine on the shelf? A whole-season replay
+
+`python3 eval/season.py` plays out every day from 2022-07-04 to 2022-10-31 against the real GloFAS river at Lokoja. Every 7 days each policy plans from the stock it would have that day. Clinics use medicine daily, and a delivery waits while its road is shut. Stock, use, roads and supplier lateness are SYNTHETIC: S3 is 21 days late on 3 of every 4 orders, following the supplier history in `docs/SCENARIO.md`. P6 starts at 60 courses.
+
+| Policy | Clinic-days with no medicine | Courses short | Spend |
+|---|---|---|---|
+| Naive: top every clinic up to 4 weeks from the cheapest supplier | 93 | 654 | ₦24,541,000 |
+| StockSense without the river forecast | 128 | 872 | ₦30,246,450 |
+| StockSense without the Critic | 111 | 731 | ₦40,459,900 |
+| **StockSense** | **73** | **498** | **₦18,279,200** |
+
+That is 20 fewer clinic-days without medicine than the naive rule, at 26% less spend. The roads to P3 and P5 stay shut from late August to the end of October, longer than either store can hold (400 and 300 courses), so some of their stockouts can't be avoided by any plan. On this season, switching off held warnings or supplier memory leaves the stockout count unchanged (73), so we don't claim a gain from them here.
 
 ## What the USL did for us
 
