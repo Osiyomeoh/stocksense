@@ -143,7 +143,23 @@ That is 20 fewer clinic-days without medicine than the naive rule, at 26% less s
 
 ## What the USL did for us
 
-[FILL: measured, not estimated: lines we didn't write, the completeness check that flags P6, what Zetaris should improve. Findings so far: the SQL editor splits at every `;` including inside string literals; `DROP LIGHTNING TABLE` is a syntax error on build 2.4.3.1; Zetaris re-fetches a REST table on every query, about 3 minutes each, so `infra/seed_pg.py` copies the same Open-Meteo responses into Postgres: a live run went from 4–6 minutes to under about a minute.]
+**One view instead of three integrations.** `infra/zetaris_usl.sql` defines `clinic_risk`, which joins Postgres stock and clinics, the road register (a spreadsheet), and the GloFAS river and rain tables in 38 lines of SQL. The app reads all of it through 165 lines (`app/data.py` and `app/adapters/zetaris.py`) and never connects to Postgres, the spreadsheet or Open-Meteo itself. The view's `LEFT JOIN`s keep a clinic that reported no stock as a row with an empty `stock_courses`, rather than dropping it. That empty value is what puts P6 on HOLD on 2022-07-04. The Evaluator re-reads the same view to check every number a plan line rests on.
+
+**Measured latency** (Zetaris Cloud, 2022-10-26, 5 runs per query, from Lagos):
+
+| Query | Rows | Median | Slowest |
+|---|---|---|---|
+| `clinic_risk`, all clinics | 16 | 5.2 s | 46.9 s |
+| `clinic_risk`, 7 clinics (Evaluator) | 14 | 7.5 s | 50.5 s |
+| River up to 2022-08-08 | 39 | 1.4 s | 2.4 s |
+| River on 2022-08-08 (Evaluator) | 1 | 1.8 s | 12.4 s |
+
+**What Zetaris should improve, from what we hit:**
+- *Latency spikes.* The same join took 5 s on one run and 47 s on another. The Evaluator re-reads in parallel to keep a run under a minute.
+- *Errors under light load.* A second round of 10 queries per table, run one after another, returned HTTP 400 `TTransportException` and `Could not create ResultSet: null`. These are internal errors with nothing a caller can act on. After a 90-second pause, the same 1-row query worked again, taking 15.6 s. The app maps them to a 502 `zetaris_unavailable` and plans nothing rather than guess.
+- *REST tables are re-fetched on every query*, about 3 minutes each. `infra/seed_pg.py` copies the same Open-Meteo responses into Postgres, which took a live run from 4–6 minutes to under about a minute. A cache or TTL on REST sources would remove that step.
+- *The SQL editor splits at every `;`*, including inside string literals.
+- *`DROP LIGHTNING TABLE` is a syntax error* on build 2.4.3.1.
 
 ## Built before and during the event
 
