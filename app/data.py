@@ -31,6 +31,7 @@ class Clinic:
     closes_above_m3s: float | None
     capacity: int
     km_to_store: float
+    problem: str | None = None  # why the row can't be planned on; set with stock None
 
     @property
     def days_of_stock(self) -> float | None:
@@ -58,17 +59,23 @@ def load_clinics(as_of: str, clinic_ids: list[str] | None = None) -> list[Clinic
         if r["as_of"] != as_of:
             continue
         extra = SCENARIO["clinics"][r["clinic_id"]]
+        stock, use = _num(r["stock_courses"], int), _num(r["daily_use_rainy"])
+        problem = None
+        if stock is not None and stock < 0 or use is None or use <= 0:
+            problem = f"impossible source values (stock {stock}, daily use {use}); check the clinic's data"
+            stock, use = None, use if use and use > 0 else 1.0
         clinics.append(Clinic(
             clinic_id=r["clinic_id"],
             name=r["clinic_name"],
             as_of=r["as_of"],
-            stock=_num(r["stock_courses"], int),
-            daily_use=_num(r["daily_use_rainy"]),
+            stock=stock,
+            daily_use=use,
             road_id=r["road_id"],
             road_surface=r["road_surface"],
             closes_above_m3s=_num(r["closes_above_m3s"]),
             capacity=extra["capacity"],
             km_to_store=extra["km_to_store"],
+            problem=problem,
         ))
     return clinics
 

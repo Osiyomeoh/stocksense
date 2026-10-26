@@ -59,10 +59,15 @@ ERRORS: dict[type, tuple[int, str]] = {
 }
 
 
+MAX_NOTE = 500  # each clause is one H-MEM call; a pharmacist's edit is a sentence or two
+
+
 def feedback(payload: Any) -> dict[str, Any]:
     note = payload.get("note") if isinstance(payload, dict) else None
     if not isinstance(note, str) or not note.strip():
         raise InputError('feedback must be {"note": "<the pharmacist\'s edit>"}')
+    if len(note) > MAX_NOTE:
+        raise InputError(f"a note is at most {MAX_NOTE} characters")
     return {"note": note, "changes": memory_keeper.learn(note)}
 
 
@@ -74,6 +79,7 @@ def handle(raw: str, fn=run) -> tuple[int, dict[str, Any]]:
         return status, {"error": {"type": kind, "message": str(e)}}
 
 
+MAX_BODY = 4096
 UI = config.ROOT / "app" / "ui" / "index.html"
 
 
@@ -96,8 +102,13 @@ class Handler(BaseHTTPRequestHandler):
         fn = {"/run": run, "/feedback": feedback}.get(self.path)
         if fn is None:
             return self._send(404, {"error": {"type": "not_found", "message": "POST /run or /feedback"}})
-        length = int(self.headers.get("Content-Length") or 0)
-        self._send(*handle(self.rfile.read(length).decode(), fn))
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            if not 0 <= length <= MAX_BODY:
+                raise ValueError
+        except ValueError:
+            return self._send(400, {"error": {"type": "bad_input", "message": f"Content-Length must be 0..{MAX_BODY}"}})
+        self._send(*handle(self.rfile.read(length).decode(errors="replace"), fn))
 
     def _send(self, status: int, body: dict[str, Any]) -> None:
         data = json.dumps(body, default=str).encode()

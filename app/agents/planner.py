@@ -61,7 +61,7 @@ def plan(clinics: list[Clinic], roads: dict[str, RoadForecast], cfg: dict, const
     known = [c for c in clinics if c.stock is not None]
     for c in clinics:
         if c.stock is None:
-            out.holds.append({"clinic": c.clinic_id, "reason": "no stock reading for this snapshot; ask the clinic before planning"})
+            out.holds.append({"clinic": c.clinic_id, "reason": c.problem or "no stock reading for this snapshot; ask the clinic before planning"})
 
     need = {}
     for c in known:

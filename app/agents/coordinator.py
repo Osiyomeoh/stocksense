@@ -26,6 +26,12 @@ End with: "Approve, edit or reject each line."
 """
 
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+# Numbers in words dodge the digit check, so the briefing may not use them.
+NUMBER_WORDS = re.compile(r"\b(four|five|six|seven|eight|nine|ten|eleven|twelve|\w+teen|twenty|thirty|forty|fifty|"
+                          r"sixty|seventy|eighty|ninety|hundred|thousand|million|billion|dozen)\b", re.I)
+# Only the pharmacist approves or sends anything; the briefing may not say it happened.
+ACTED = re.compile(r"\b(approved|has been (sent|placed|ordered|dispatched)|was (sent|placed|ordered|dispatched)|"
+                   r"already (sent|ordered|placed))\b", re.I)
 
 
 def facts(result: dict) -> dict:
@@ -77,4 +83,8 @@ def brief(result: dict) -> dict:
     if bad:
         return {"text": template(f), "model": out["model"], "source": "template",
                 "reason": f"model text had numbers not in the plan: {', '.join(bad)}"}
+    for rule, why in ((NUMBER_WORDS, "a number in words"), (ACTED, "a claim that the plan was already acted on")):
+        if m := rule.search(out["text"]):
+            return {"text": template(f), "model": out["model"], "source": "template",
+                    "reason": f"model text had {why}: {m.group(0)!r}"}
     return {"text": out["text"].strip(), "model": out["model"], "source": "nemotron", "reason": "all numbers match the plan"}
