@@ -1,187 +1,1259 @@
 <!doctype html>
 <html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>StockSense Run Replay</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<title>StockSense: Before the Rain</title>
+<meta name="description" content="AI agents that help an LGA pharmacist move malaria medicine to clinics before flood water closes their roads. A pharmacist approves every line.">
+<meta property="og:title" content="StockSense: Before the Rain">
+<meta property="og:description" content="Which rural clinics will the flood cut off before their malaria medicine runs out, and what should the pharmacist move or buy today?">
+<meta property="og:image" content="img/kogi-flood-2022.jpg">
+<meta name="theme-color" content="#070b10">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3c5 7 9 11.5 9 16.5a9 9 0 0 1-18 0C7 14.5 11 10 16 3z' fill='%235fb7e5'/%3E%3Cpath d='M14.5 14h3v4h4v3h-4v4h-3v-4h-4v-3h4z' fill='%23070b10'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: one column; a run picker, then summary → plan → briefing → full agent trace. Colours follow the pitch deck. */
 :root {
-  --bg: #F6F4EE; --panel: #FFFDF8; --line: #DCD8CC; --fg: #14213D; --muted: #5D6874;
-  --accent: #A4501A; --ok: #2F6B3A; --warn: #A66A00; --bad: #A3302A; --river: #2B5C8A;
-  --display: 'Oswald', 'Arial Narrow', Arial, sans-serif;
-  --body: 'Public Sans', Arial, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --bg: #070b10; --bg2: #0c131b; --bg3: #111b25; --panel: rgba(13, 21, 30, .72); --line: rgba(255, 255, 255, .09); --line2: rgba(255, 255, 255, .16);
+  --text: #e9eef3; --muted: #9aa8b5; --dim: #6c7b88;
+  --river: #5fb7e5; --ok: #43c690; --warn: #f2ab3c; --shut: #ef5b4f; --brand: #7cc4ff; --mud: #b08a5a;
+  --display: "Space Grotesk", "Public Sans", Arial, sans-serif; --body: "Public Sans", Arial, sans-serif; --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --r: 14px; --max: 1180px;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #10172A; --panel: #172038; --line: #2C3753; --fg: #ECE8DE; --muted: #A3ACBA;
-  --accent: #E08A4F; --ok: #7CC48A; --warn: #E2B048; --bad: #EE8076; --river: #7FB0DE; color-scheme: dark } }
-:root[data-theme="dark"] {
-  --bg: #10172A; --panel: #172038; --line: #2C3753; --fg: #ECE8DE; --muted: #A3ACBA;
-  --accent: #E08A4F; --ok: #7CC48A; --warn: #E2B048; --bad: #EE8076; --river: #7FB0DE; color-scheme: dark }
-* { box-sizing: border-box }
-body { background: var(--bg); color: var(--fg); font: 16px/1.55 var(--body); }
-.wrap { max-width: 1040px; margin: 0 auto; padding-block: 40px 72px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: flex; flex-direction: column; gap: 32px }
-.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0 }
-h1 { font: 600 clamp(36px, 6vw, 56px)/1.05 var(--display); margin: 6px 0 12px; text-wrap: balance }
-h2 { font: 500 24px/1.2 var(--display); margin: 0; letter-spacing: .01em }
-p { margin: 0; max-width: 68ch }
-.lede { color: var(--muted); font-size: 18px }
-.picker { display: flex; flex-wrap: wrap; gap: 8px }
-.picker button { font: 600 15px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line);
-  border-radius: 999px; padding: 9px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; text-align: left }
-.picker button small { font-weight: 400; color: var(--muted); font-size: 13px }
-.picker button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
-.picker button:focus-visible, .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
-section { display: flex; flex-direction: column; gap: 14px; min-width: 0 }
-.story { font-size: 18px; border-left: 3px solid var(--accent); padding-left: 16px }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px }
-.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px }
-.stat b { font: 500 26px/1.2 var(--display); font-variant-numeric: tabular-nums }
-.stat span { font-size: 13px; color: var(--muted) }
-.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel) }
-table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums }
-th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
-th { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600 }
-tr:last-child td { border-bottom: 0 }
-td.num, th.num { text-align: right }
-.pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap }
-.ok { color: var(--ok) } .rejected, .held, .escalated, .fallback { color: var(--bad) } .needs_review { color: var(--warn) }
-.road { color: var(--river) }
-.briefing { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px }
-.briefing .meta { font: 13px var(--mono); color: var(--muted) }
-.trace td:first-child { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap }
-.trace td.agent { font-weight: 600; white-space: nowrap }
-.trace tr.flag td { background: color-mix(in srgb, var(--bad) 8%, transparent) }
-.mono { font-family: var(--mono); font-size: 13px }
-.note { color: var(--muted); font-size: 14px }
-.prove { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--panel); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 16px }
-.copy { font: 600 13px var(--body); background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 10px; cursor: pointer }
-footer { color: var(--muted); font-size: 13px; display: flex; flex-direction: column; gap: 6px }
-footer a { color: inherit }
-.banner { margin: 0 0 28px } .banner img { width: 100%; aspect-ratio: 21 / 8; object-fit: cover; border-radius: 10px; display: block }
-.banner figcaption { font-size: 12px; color: var(--muted); margin-top: 6px } .banner a { color: inherit }
-@media (prefers-reduced-motion: no-preference) { #view { animation: in .25s ease } @keyframes in { from { opacity: .4 } } }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 17px/1.6 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: inherit; }
+img { max-width: 100%; display: block; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+.mono { font-family: var(--mono); }
+.eyebrow { font: 600 12px/1 var(--body); letter-spacing: .16em; text-transform: uppercase; color: var(--brand); margin: 0 0 18px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -.02em; }
+h2 { font-size: clamp(32px, 4.6vw, 56px); line-height: 1.04; font-weight: 700; }
+h3 { font-size: 21px; line-height: 1.2; font-weight: 600; }
+.lead { font-size: clamp(17px, 1.6vw, 20px); color: var(--muted); max-width: 62ch; }
+.tag { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line2); color: var(--muted); }
+.tag.syn { color: var(--warn); border-color: rgba(242, 171, 60, .35); }
+.tag.real { color: var(--ok); border-color: rgba(67, 198, 144, .35); }
+
+/* nav */
+.nav { position: fixed; inset: 0 0 auto 0; z-index: 50; transition: background .3s, border-color .3s; border-bottom: 1px solid transparent; }
+.nav.solid { background: rgba(7, 11, 16, .82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-color: var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+.logo { display: flex; align-items: center; gap: 10px; font: 700 18px/1 var(--display); text-decoration: none; letter-spacing: -.01em; }
+.logo svg { width: 26px; height: 26px; }
+.nav-links { display: flex; gap: 22px; margin-left: auto; }
+.nav-links a { text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 500; transition: color .2s; }
+.nav-links a:hover { color: var(--text); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 13px 20px; border-radius: 999px; font: 600 15px/1 var(--body); text-decoration: none; cursor: pointer; border: 1px solid transparent; transition: transform .2s, background .2s, border-color .2s, box-shadow .2s; white-space: nowrap; }
+.btn:hover { transform: translateY(-1px); }
+.btn.primary { background: var(--text); color: #071018; box-shadow: 0 10px 30px -10px rgba(124, 196, 255, .55); }
+.btn.primary:hover { background: #fff; }
+.btn.ghost { background: rgba(255, 255, 255, .06); border-color: var(--line2); backdrop-filter: blur(8px); }
+.btn.ghost:hover { background: rgba(255, 255, 255, .12); }
+.btn.sm { padding: 9px 14px; font-size: 13px; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.snd { display: inline-flex; align-items: center; gap: 8px; }
+.snd .eqb { display: inline-flex; gap: 2px; align-items: flex-end; height: 14px; }
+.snd .eqb i { width: 3px; background: currentColor; border-radius: 2px; height: 4px; transition: height .2s; }
+.snd[aria-pressed="true"] .eqb i { animation: eq 1s ease-in-out infinite; }
+.snd[aria-pressed="true"] .eqb i:nth-child(2) { animation-delay: -.3s; }
+.snd[aria-pressed="true"] .eqb i:nth-child(3) { animation-delay: -.6s; }
+@keyframes eq { 0%, 100% { height: 4px; } 50% { height: 14px; } }
+
+/* hero */
+.hero { position: relative; height: 100svh; min-height: 680px; overflow: hidden; background: radial-gradient(120% 80% at 50% 0%, #1b2a3a 0%, #0b121a 55%, var(--bg) 100%); }
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hero-fallback { position: absolute; inset: 0; background: url("img/kogi-flood-2022.jpg") center / cover; opacity: 0; transition: opacity .6s; }
+.hero.nogl .hero-fallback { opacity: .55; }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(7, 11, 16, .9) 0%, rgba(7, 11, 16, .55) 38%, rgba(7, 11, 16, 0) 62%), linear-gradient(0deg, var(--bg) 0%, rgba(7, 11, 16, 0) 30%); }
+.hero-copy { position: absolute; z-index: 3; left: 0; right: 0; top: 50%; transform: translateY(-58%); pointer-events: none; }
+.hero-copy .wrap > * { pointer-events: auto; }
+.hero h1 { font-size: clamp(42px, 6.6vw, 88px); line-height: .98; font-weight: 700; max-width: 11.5ch; letter-spacing: -.035em; }
+.hero h1 em { font-style: normal; background: linear-gradient(90deg, #9fd6ff, var(--river) 50%, #b9e3ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero .lead { margin: 24px 0 32px; max-width: 46ch; color: #c2ccd6; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.pin { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); white-space: nowrap; font: 600 12px/1.25 var(--body); padding: 6px 10px 6px 9px; border-radius: 9px; background: rgba(8, 13, 19, .78); border: 1px solid var(--line2); backdrop-filter: blur(6px); display: flex; align-items: center; gap: 7px; transition: border-color .3s, opacity .3s; will-change: transform; }
+.pin::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); flex: none; }
+.pin small { display: block; font-weight: 500; color: var(--muted); font-size: 11px; }
+.pin.warn { border-color: rgba(242, 171, 60, .6); } .pin.warn::before { background: var(--warn); box-shadow: 0 0 10px var(--warn); }
+.pin.shut { border-color: rgba(239, 91, 79, .75); } .pin.shut::before { background: var(--shut); box-shadow: 0 0 12px var(--shut); }
+.pin.minor { opacity: .7; font-size: 11px; padding: 4px 8px; }
+.pin.store::before { background: var(--brand); box-shadow: 0 0 10px var(--brand); border-radius: 2px; }
+
+.hud { position: absolute; z-index: 4; left: 0; right: 0; bottom: 22px; }
+.hud .wrap { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px 18px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); max-width: calc(var(--max) - 48px); }
+.hud-date { min-width: 188px; }
+.hud-date b { display: block; font: 700 26px/1 var(--display); letter-spacing: -.02em; }
+.hud-date span { display: block; margin-top: 6px; font: 500 12px/1.3 var(--mono); color: var(--muted); }
+.hud-date span i { font-style: normal; color: var(--river); }
+.spark { position: relative; height: 56px; cursor: ew-resize; touch-action: none; }
+.spark canvas { width: 100%; height: 100%; display: block; }
+.hud-right { display: flex; gap: 8px; align-items: center; }
+.iconbtn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .07); border: 1px solid var(--line2); cursor: pointer; transition: background .2s; }
+.iconbtn:hover { background: rgba(255, 255, 255, .14); }
+.iconbtn svg { width: 16px; height: 16px; }
+.roads { display: flex; gap: 8px; flex-wrap: wrap; grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 12px; align-items: center; }
+.chip { display: inline-flex; gap: 8px; align-items: center; font: 500 12px/1 var(--body); padding: 7px 10px; border-radius: 999px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line); transition: all .3s; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.chip.warn { border-color: rgba(242, 171, 60, .5); color: #ffd79a; } .chip.warn::before { background: var(--warn); }
+.chip.shut { border-color: rgba(239, 91, 79, .6); color: #ffb3ab; } .chip.shut::before { background: var(--shut); }
+.roads .note { margin-left: auto; font-size: 11px; color: var(--dim); }
+.toast { position: absolute; z-index: 5; right: 24px; top: 84px; width: min(360px, calc(100% - 48px)); padding: 14px 16px; border-radius: 14px; background: rgba(10, 16, 23, .88); border: 1px solid var(--line2); backdrop-filter: blur(12px); font-size: 14px; line-height: 1.45; transform: translateY(-8px); opacity: 0; transition: opacity .35s, transform .35s; pointer-events: none; }
+.toast.on { opacity: 1; transform: none; }
+.toast .tt { display: block; font: 600 11px/1 var(--body); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 8px; color: var(--warn); }
+.toast.shut .tt { color: var(--shut); } .toast.run .tt { color: var(--brand); }
+.scrollcue { position: absolute; z-index: 3; left: 50%; bottom: 168px; transform: translateX(-50%); color: var(--dim); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; display: none; }
+
+/* sections */
+section { position: relative; }
+.sec { padding: 132px 0; }
+.sec + .sec { border-top: 1px solid var(--line); }
+.sec-head { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 56px; max-width: 820px; }
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity .9s cubic-bezier(.2, .7, .2, 1), transform .9s cubic-bezier(.2, .7, .2, 1); }
+.reveal.in { opacity: 1; transform: none; }
+.d1 { transition-delay: .08s; } .d2 { transition-delay: .16s; } .d3 { transition-delay: .24s; } .d4 { transition-delay: .32s; }
+
+.problem { display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items: center; }
+.figure { position: relative; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); background: var(--bg2); }
+.figure img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 4 / 3; transform: scale(1.06); transition: transform 1.6s cubic-bezier(.2, .7, .2, 1); }
+.reveal.in .figure img, .figure.in img { transform: none; }
+.cap { font-size: 12px; line-height: 1.45; color: var(--dim); margin-top: 10px; }
+.cap a { color: var(--muted); }
+.big-stat { display: flex; align-items: baseline; gap: 14px; margin: 28px 0 6px; }
+.big-stat b { font: 700 clamp(64px, 9vw, 120px)/.9 var(--display); letter-spacing: -.05em; color: #fff; }
+.big-stat span { color: var(--muted); max-width: 18ch; line-height: 1.3; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px; }
+.fact { padding: 18px; border-radius: 12px; background: var(--bg2); border: 1px solid var(--line); }
+.fact b { display: block; font: 700 28px/1 var(--display); margin-bottom: 6px; }
+.fact span { color: var(--muted); font-size: 14px; line-height: 1.4; display: block; }
+.src { font-size: 12px; color: var(--dim); margin-top: 18px; }
+.src a { color: var(--muted); }
+
+/* who */
+.who { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+.question { font: 600 clamp(22px, 2.4vw, 30px)/1.3 var(--display); letter-spacing: -.01em; padding-left: 22px; border-left: 3px solid var(--river); margin: 28px 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.two div { padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); font-size: 14px; color: var(--muted); }
+.two div b { display: block; color: var(--text); font: 600 16px/1.3 var(--display); margin-bottom: 4px; }
+
+/* agents */
+.agents { background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); }
+.flow { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; position: relative; }
+.node { position: relative; padding: 16px 14px; border-radius: 12px; background: var(--bg3); border: 1px solid var(--line); min-height: 172px; transition: border-color .35s, background .35s, transform .35s, box-shadow .35s; }
+.node .n { font: 500 11px/1 var(--mono); color: var(--dim); }
+.node h3 { font-size: 16px; margin: 10px 0 8px; }
+.node p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.node .badge { position: absolute; top: 12px; right: 12px; font: 600 10px/1 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.node.on { border-color: rgba(124, 196, 255, .7); background: #13233a; transform: translateY(-4px); box-shadow: 0 18px 40px -20px rgba(124, 196, 255, .7); }
+.node.done { border-color: rgba(67, 198, 144, .35); }
+.node.reject { border-color: rgba(242, 171, 60, .8); background: #2a2111; }
+.node.model { background: linear-gradient(160deg, #142233, #0f2a1f); }
+.node.model .badge { color: #76b900; }
+.loop { margin-top: 14px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+.loop .arc { grid-column: 5 / 7; height: 30px; border: 1.5px dashed rgba(242, 171, 60, .55); border-top: 0; border-radius: 0 0 14px 14px; position: relative; opacity: .35; transition: opacity .3s; }
+.loop .arc.on { opacity: 1; }
+.loop .arc span { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 6px); font: 500 11px/1.2 var(--mono); color: var(--warn); white-space: nowrap; }
+.console { margin-top: 56px; border-radius: var(--r); background: #05080c; border: 1px solid var(--line); overflow: hidden; }
+.console-top { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); font: 500 12px/1 var(--mono); color: var(--dim); }
+.console-top i { width: 10px; height: 10px; border-radius: 50%; background: #26313c; }
+.console-top span { margin-left: 8px; }
+.console-body { height: 268px; overflow: hidden; padding: 14px 16px; font: 400 12.5px/1.75 var(--mono); color: #b8c4cf; position: relative; }
+.console-body .ln { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: ln .35s ease-out; }
+.console-body .ln b { color: var(--brand); font-weight: 600; display: inline-block; min-width: 15ch; }
+.console-body .ln .ok { color: var(--ok); } .console-body .ln .bad { color: var(--warn); } .console-body .ln .m { color: #a5d65a; }
+@keyframes ln { from { opacity: 0; transform: translateY(6px); } }
+.quote { margin-top: 28px; font: 600 clamp(20px, 2.2vw, 28px)/1.3 var(--display); color: var(--text); }
+.quote span { color: var(--muted); }
+
+/* race */
+.race-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.race { padding: 28px; border-radius: var(--r); background: var(--bg2); border: 1px solid var(--line); }
+.race h3 { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.race h3 small { font: 500 12px/1 var(--mono); color: var(--dim); }
+.bars { margin-top: 26px; display: grid; gap: 18px; }
+.bar label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.bar label b { color: var(--text); font: 600 15px/1 var(--display); }
+.track { height: 12px; border-radius: 99px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.fill { height: 100%; border-radius: 99px; width: 0; transition: width 1.6s cubic-bezier(.2, .7, .2, 1); }
+.fill.stock { background: linear-gradient(90deg, #f06a5d, var(--shut)); }
+.fill.road { background: linear-gradient(90deg, #f5c068, var(--warn)); }
+.fill.after { background: linear-gradient(90deg, #6fe0b1, var(--ok)); }
+.race .verdict { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.race .verdict b { color: var(--text); }
+.plan-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.plan-meta div { flex: 1 1 200px; padding: 16px 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); }
+.plan-meta b { display: block; font: 700 24px/1.1 var(--display); }
+.plan-meta span { font-size: 13px; color: var(--muted); }
+
+/* try it */
+.tryit { background: radial-gradient(80% 60% at 80% 0%, rgba(95, 183, 229, .1), transparent 70%), var(--bg); }
+.app { border-radius: 18px; border: 1px solid var(--line2); background: #0a1118; overflow: hidden; box-shadow: 0 40px 80px -40px rgba(0, 0, 0, .8); }
+.app-top { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: #0d151e; flex-wrap: wrap; }
+.app-top b { font: 600 15px/1 var(--display); }
+.app-top .tag { margin-left: auto; }
+.app-body { display: grid; grid-template-columns: 1.55fr 1fr; }
+.lines { padding: 14px; display: grid; gap: 8px; border-right: 1px solid var(--line); }
+.line { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 10px; background: var(--bg2); border: 1px solid var(--line); transition: border-color .25s, background .25s, opacity .25s; }
+.line .what { font-size: 14px; line-height: 1.4; }
+.line .what b { font-weight: 700; }
+.line .why { font-size: 12px; color: var(--dim); margin-top: 3px; }
+.line .flag { display: none; font: 500 11px/1.3 var(--mono); color: var(--warn); margin-top: 6px; }
+.line.edited .flag { display: block; }
+.line.approved { border-color: rgba(67, 198, 144, .55); background: #0e1f19; }
+.line.rejected { opacity: .55; border-style: dashed; }
+.line.rejected .what { text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, .35); }
+.line.edited { border-color: rgba(242, 171, 60, .6); }
+.acts { display: flex; gap: 6px; }
+.acts button { padding: 7px 11px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; background: rgba(255, 255, 255, .06); border: 1px solid var(--line2); transition: background .2s, border-color .2s; }
+.acts button:hover { background: rgba(255, 255, 255, .13); }
+.acts button[aria-pressed="true"].ap { background: var(--ok); color: #05150e; border-color: var(--ok); }
+.acts button[aria-pressed="true"].rj { background: #3a1d1a; border-color: var(--shut); color: #ffb3ab; }
+.qty { width: 64px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--warn); background: #1a140a; color: var(--text); font: 600 14px/1 var(--body); }
+.side { padding: 18px; display: flex; flex-direction: column; gap: 18px; }
+.panel { padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); }
+.panel h4 { margin: 0 0 10px; font: 600 12px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.tally { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.tally div b { display: block; font: 700 26px/1 var(--display); }
+.tally div span { font-size: 11px; color: var(--muted); }
+.po { font-size: 14px; line-height: 1.5; }
+.po b { font-weight: 700; }
+.po .was { color: var(--dim); text-decoration: line-through; display: block; font-size: 12px; }
+.memform { display: flex; gap: 8px; }
+.memform input { flex: 1; min-width: 0; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line2); background: #070c12; color: var(--text); font: 400 14px/1 var(--body); }
+.memform input::placeholder { color: var(--dim); }
+.suggest { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.suggest button { padding: 6px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; background: transparent; border: 1px dashed var(--line2); color: var(--muted); }
+.suggest button:hover { color: var(--text); border-color: var(--brand); }
+.memout { margin-top: 12px; font-size: 13px; line-height: 1.5; color: var(--muted); min-height: 3em; }
+.memout b { color: var(--text); }
+.memout .conf { display: flex; align-items: center; gap: 10px; margin-top: 10px; font: 500 12px/1 var(--mono); }
+.memout .meter { flex: 1; height: 8px; border-radius: 9px; background: rgba(255, 255, 255, .08); position: relative; overflow: hidden; }
+.memout .meter i { position: absolute; inset: 0 auto 0 0; background: var(--brand); border-radius: 9px; transition: width .8s; }
+.memout .meter u { position: absolute; top: -3px; bottom: -3px; left: 70%; width: 2px; background: var(--warn); }
+.brief { font-size: 13px; line-height: 1.6; color: #c6d0da; }
+.brief .model { display: block; margin-top: 8px; font: 500 11px/1.3 var(--mono); color: #a5d65a; }
+.foot-note { font-size: 12px; color: var(--dim); padding: 12px 18px; border-top: 1px solid var(--line); background: #0d151e; }
+
+/* results */
+.results { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
+.vs { display: flex; gap: 36px; align-items: end; flex-wrap: wrap; }
+.vs div b { display: block; font: 700 clamp(72px, 10vw, 140px)/.85 var(--display); letter-spacing: -.05em; }
+.vs div span { display: block; margin-top: 12px; font-size: 14px; color: var(--muted); max-width: 18ch; }
+.vs .us b { background: linear-gradient(180deg, #fff, #9fd6ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.vs .them b { color: #46525e; }
+.headline { margin-top: 28px; font: 600 clamp(22px, 2.4vw, 30px)/1.25 var(--display); }
+.headline span { color: var(--ok); }
+.abl { display: grid; gap: 14px; }
+.abl .row { display: grid; grid-template-columns: 210px 1fr 48px; gap: 14px; align-items: center; font-size: 14px; }
+.abl .row .t { height: 26px; border-radius: 6px; background: rgba(255, 255, 255, .04); overflow: hidden; }
+.abl .row .t i { display: block; height: 100%; width: 0; border-radius: 6px; background: #3a4754; transition: width 1.4s cubic-bezier(.2, .7, .2, 1); }
+.abl .row.us .t i { background: linear-gradient(90deg, #4aa8de, var(--river)); }
+.abl .row b { font: 700 18px/1 var(--display); text-align: right; }
+.abl .row small { display: block; color: var(--dim); font-size: 12px; }
+
+/* sponsors */
+.stack { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.card { position: relative; padding: 28px; border-radius: 18px; background: var(--bg2); border: 1px solid var(--line); overflow: hidden; transition: transform .4s, border-color .4s; transform-style: preserve-3d; }
+.card:hover { border-color: var(--line2); }
+.card::before { content: ""; position: absolute; inset: -1px; background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 0%), rgba(124, 196, 255, .14), transparent 45%); opacity: 0; transition: opacity .4s; pointer-events: none; }
+.card:hover::before { opacity: 1; }
+.card .who { display: block; font: 600 12px/1 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+.card h3 { font-size: 24px; margin-bottom: 12px; }
+.card p { margin: 0 0 16px; color: var(--muted); font-size: 15px; }
+.card code { font: 500 12.5px/1.6 var(--mono); color: #cfe6ff; background: rgba(124, 196, 255, .08); padding: 2px 6px; border-radius: 6px; word-break: break-word; }
+.card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; color: #c6d0da; }
+.card li { padding-left: 18px; position: relative; }
+.card li::before { content: ""; position: absolute; left: 0; top: .6em; width: 8px; height: 2px; background: var(--river); }
+
+/* video */
+.video { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--line2); aspect-ratio: 16 / 9; background: #000; }
+.video button.poster { position: absolute; inset: 0; width: 100%; border: 0; padding: 0; cursor: pointer; background: url("img/kogi-flood-2022.jpg") center / cover; }
+.video button.poster::before { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(4, 8, 12, .92), rgba(4, 8, 12, .35)); transition: background .3s; }
+.video button.poster:hover::before { background: linear-gradient(0deg, rgba(4, 8, 12, .85), rgba(4, 8, 12, .15)); }
+.play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 96px; height: 96px; border-radius: 50%; background: rgba(255, 255, 255, .95); display: grid; place-items: center; box-shadow: 0 0 0 0 rgba(255, 255, 255, .45); animation: ping 2.4s infinite; }
+.play svg { width: 30px; height: 30px; margin-left: 5px; color: #071018; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, .45); } 70% { box-shadow: 0 0 0 26px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
+.vmeta { position: absolute; left: 28px; bottom: 24px; right: 28px; text-align: left; display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+.vmeta b { display: block; font: 700 clamp(20px, 2.6vw, 32px)/1.1 var(--display); }
+.vmeta span { color: #c2ccd6; font-size: 14px; }
+.video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* proof */
+.proof { display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center; }
+.term { border-radius: var(--r); background: #05080c; border: 1px solid var(--line); overflow: hidden; }
+.term-body { padding: 16px 18px; height: 390px; overflow: hidden; font: 400 13px/1.7 var(--mono); color: #b8c4cf; display: flex; flex-direction: column; justify-content: flex-end; }
+.term-body .p { color: var(--ok); font-weight: 600; margin-right: 10px; }
+.term-body .cmd { color: #fff; }
+.term-body .sum { color: #fff; font-weight: 600; margin-top: 6px; }
+.term-body .caret { display: inline-block; width: 8px; height: 15px; background: var(--text); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.counter { font: 700 clamp(64px, 8vw, 104px)/.9 var(--display); letter-spacing: -.04em; }
+.counter span { color: var(--dim); }
+
+/* limits */
+.limits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.limit { padding: 22px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg2); }
+.limit b { display: block; font: 600 17px/1.3 var(--display); margin-bottom: 8px; }
+.limit span { font-size: 14px; color: var(--muted); }
+
+/* close */
+.closer { padding: 150px 0 110px; text-align: center; background: radial-gradient(70% 70% at 50% 100%, rgba(95, 183, 229, .16), transparent 70%); }
+.closer h2 { font-size: clamp(38px, 6vw, 80px); max-width: 16ch; margin: 0 auto; }
+.closer h2 span { color: var(--river); }
+.closer .cta { justify-content: center; margin-top: 40px; }
+.links { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 72px auto 0; max-width: 980px; text-align: left; }
+.links a { display: block; padding: 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg2); text-decoration: none; transition: border-color .25s, transform .25s; }
+.links a:hover { border-color: var(--line2); transform: translateY(-2px); }
+.links a b { display: block; font: 600 15px/1.2 var(--display); margin-bottom: 6px; }
+.links a span { font: 400 12px/1.4 var(--mono); color: var(--muted); word-break: break-all; }
+footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 12.5px; line-height: 1.65; color: var(--dim); }
+footer .wrap { display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; }
+footer a { color: var(--muted); }
+footer b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 1080px) {
+  .flow { grid-template-columns: repeat(4, 1fr); }
+  .loop { display: none; }
+  .stack, .limits { grid-template-columns: 1fr 1fr; }
+  .links { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 860px) {
+  .nav-links { display: none; }
+  .nav .wrap { gap: 12px; }
+  .nav .gh { margin-left: auto; }
+  .problem, .who, .results, .proof, .race-grid, .app-body { grid-template-columns: 1fr; }
+  .lines { border-right: 0; border-bottom: 1px solid var(--line); }
+  .sec { padding: 96px 0; }
+  .hero::after { background: linear-gradient(0deg, var(--bg) 6%, rgba(7, 11, 16, .65) 46%, rgba(7, 11, 16, .35) 100%); }
+  .hero-copy { top: 96px; transform: none; }
+  .hud .wrap { grid-template-columns: 1fr auto; }
+  .spark { grid-column: 1 / -1; grid-row: 2; }
+  .roads .note { margin-left: 0; width: 100%; }
+  .toast { top: auto; bottom: 230px; right: 16px; }
+  .abl .row { grid-template-columns: 130px 1fr 40px; }
+  footer .wrap { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px; }
+  .flow, .stack, .limits, .links, .facts, .two { grid-template-columns: 1fr; }
+  .node { min-height: 0; }
+  .hud { bottom: 12px; }
+  .hud .wrap { padding: 12px; gap: 12px; }
+  .hud-date { min-width: 0; }
+  .hud-date b { font-size: 21px; }
+  .chip { font-size: 11px; padding: 6px 8px; }
+  .pin small { display: none; }
+  .line { grid-template-columns: 1fr; }
+  .nav .btn.gh { display: none; }
+  .hero-copy { top: 84px; }
+  .hero h1 { font-size: 38px; }
+  .hero .lead { font-size: 15px; margin: 14px 0 18px; }
+  .hero .cta { gap: 8px; }
+  .hero .cta .btn { padding: 10px 14px; font-size: 13px; }
+  .roads { gap: 6px; padding-top: 10px; }
+  .roads .note { font-size: 10px; }
+  .spark { height: 46px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .play, .snd[aria-pressed="true"] .eqb i { animation: none; }
+  .figure img { transform: none; }
+}
 </style>
+</head>
+<body>
 
-<div class="wrap">
-  <header>
-    <figure class="banner"><img src="img/kogi-flood-2022.jpg" alt="Satellite view of flood water spread across farmland and villages near Gerinya, Kogi State">
-      <figcaption>Flooding near Gerinya, Kogi State, 14 October 2022, from Sentinel-2. <a href="https://commons.wikimedia.org/wiki/File:Disastrous_floods_affect_Nigeria.jpg">Contains modified Copernicus Sentinel data 2022</a></figcaption></figure>
-    <p class="eyebrow">StockSense · Before the Rain</p>
-    <h1>Watch the agents plan, step by step</h1>
-    <p class="lede">These are real recorded runs of StockSense on the 2022 flood season at Lokoja, Kogi State. Every agent step is shown exactly as its trace file logged it. Nothing to install. Clinics, stock and roads are synthetic; the river readings are real GloFAS data.</p>
-  </header>
-
-  <nav class="picker" role="tablist" aria-label="Recorded runs" id="picker"></nav>
-
-  <main id="view"></main>
-
-  <div class="prove">
-    <span>Every number on this page is re-checked by one command, with no keys or network:</span>
-    <code class="mono" id="cmd">python3 prove.py</code>
-    <button class="copy" id="copy" type="button">Copy</button>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="StockSense home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3c5 7 9 11.5 9 16.5a9 9 0 0 1-18 0C7 14.5 11 10 16 3z" fill="#5fb7e5"/><path d="M14.5 14h3v4h4v3h-4v4h-3v-4h-4v-3h4z" fill="#070b10"/></svg>
+      StockSense
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#problem">Problem</a><a href="#agents">Agents</a><a href="#try">Try it</a><a href="#results">Results</a><a href="#stack">Stack</a><a href="#demo">Demo</a><a href="#proof">Proof</a>
+    </nav>
+    <button class="btn ghost sm snd" id="sound" type="button" aria-pressed="false" aria-label="Sound: off">
+      <span class="eqb" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl">Sound off</span>
+    </button>
+    <a class="btn ghost sm gh" href="https://github.com/Osiyomeoh/stocksense">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
   </div>
+</header>
 
-  <footer>
-    <p>Recorded in SAMPLE_MODE, which replays the Zetaris and Nightshift responses captured from live runs. The Nemotron briefing was generated by <span class="mono">nvidia/nemotron-3.5-lightning-30b-a3b</span> through Nightshift.</p>
-    <p>River discharge: GloFAS via the <a href="https://open-meteo.com/en/docs/flood-api">Open-Meteo Flood API</a> (<a href="https://open-meteo.com/en/licence">CC BY 4.0</a>), Copernicus Emergency Management Service. Kogi 2022 figures: <a href="https://www.afro.who.int/fr/node/16889">WHO Africa, 2 Nov 2022</a>.</p>
-    <p>StockSense drafts. A pharmacist approves, edits or rejects every line.</p>
-  </footer>
-</div>
+<main id="top">
+<section class="hero" id="hero" aria-label="StockSense, with a 3D replay of the 2022 flood season">
+  <div class="hero-fallback" aria-hidden="true"></div>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div class="labels" id="labels" aria-hidden="true"></div>
+  <div class="hero-copy">
+    <div class="wrap">
+      <p class="eyebrow">Open Agent Hackathon 2026 · Track 1</p>
+      <h1>Move the medicine <em>before the rain</em> closes the road.</h1>
+      <p class="lead">StockSense is a team of AI agents for the LGA pharmacist. It reads clinic stock, roads and the river through one Zetaris view, and drafts what to move or buy today. A pharmacist approves every line.</p>
+      <div class="cta">
+        <a class="btn primary" href="#demo"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>Watch the demo</a>
+        <a class="btn ghost" href="#try">Try it as the pharmacist</a>
+        <a class="btn ghost" href="deck.pdf">Deck (PDF)</a>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="hud" id="hud">
+    <div class="wrap">
+      <div class="hud-date"><b id="hudDate">1 Jul 2022</b><span>River at Lokoja <i id="hudQ">0</i> m³/s · rain <i id="hudR">0</i> mm</span></div>
+      <div class="spark" id="spark" role="slider" tabindex="0" aria-label="Day of the 2022 rainy season" aria-valuemin="0" aria-valuemax="122" aria-valuenow="0" aria-valuetext="1 July 2022"><canvas id="sparkC"></canvas></div>
+      <div class="hud-right">
+        <button class="iconbtn" id="playBtn" type="button" aria-label="Pause the season replay">
+          <svg id="icPause" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2h3v12H4zM9 2h3v12H9z"/></svg>
+          <svg id="icPlay" viewBox="0 0 16 16" fill="currentColor" style="display:none"><path d="M4 2.5v11l9-5.5z"/></svg>
+        </button>
+      </div>
+      <div class="roads" id="roads"><span class="note">River and rain: real 2022 readings (GloFAS, Open-Meteo). Clinics, roads and closing levels: SYNTHETIC.</span></div>
+    </div>
+  </div>
+</section>
 
+<section class="sec" id="problem">
+  <div class="wrap problem">
+    <div class="reveal">
+      <p class="eyebrow">The problem</p>
+      <h2>When the road floods first, the clinic runs out.</h2>
+      <div class="big-stat"><b data-count="92">92</b><span>health facilities in Kogi State reached by the 2022 floods</span></div>
+      <p class="lead">Malaria peaks in the same rains. Medicine is ordered on a reorder rule that cannot see the river, so the delivery arrives after the road is already under water.</p>
+      <div class="facts">
+        <div class="fact"><b>66</b><span>facilities partly flooded</span></div>
+        <div class="fact"><b>26</b><span>facilities completely flooded</span></div>
+      </div>
+      <p class="src">Source: <a href="https://www.afro.who.int/fr/node/16889">WHO Africa, 2 November 2022</a>.</p>
+    </div>
+    <div class="reveal d2">
+      <div class="figure"><img src="img/lokoja-flood-damage.jpg" alt="Homes and ground eroded by flood water, people sitting outside" loading="lazy" width="1200" height="900"></div>
+      <p class="cap">A settlement eroded by flooding in Lokoja, Kogi State, September 2021. <a href="https://commons.wikimedia.org/wiki/File:Settlement_eroded.jpg">Sani Maikatanga</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="who">
+  <div class="wrap who">
+    <div class="reveal">
+      <div class="figure"><img src="img/malaria-workers-kebbi.jpg" alt="Three community malaria workers lead a session for a group of women" loading="lazy" width="1200" height="900"></div>
+      <p class="cap">Community malaria workers lead a session for women, Kebbi State, June 2015. <a href="https://commons.wikimedia.org/wiki/File:Women_in_Kebbi_State-Nigeria_June_2015_(18863735316).jpg">Badung Samuel Yohanna, CDC / President's Malaria Initiative</a> · public domain. The people shown are not StockSense users.</p>
+    </div>
+    <div class="reveal d2">
+      <p class="eyebrow">Who it is for</p>
+      <h2>The LGA pharmacist who keeps a district's clinics stocked.</h2>
+      <p class="question">Which clinics will the flood cut off before their malaria medicine runs out, and what should I move or buy today?</p>
+      <div class="two">
+        <div><b>Days of medicine left</b>stock on hand ÷ daily use, per clinic</div>
+        <div><b>Days until the road closes</b>the river forecast against each road's closing level</div>
+      </div>
+      <p class="lead" style="margin-top:22px;font-size:16px">No single system holds both numbers. StockSense puts them side by side.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec agents" id="agents">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Eight agents, one plan</p>
+      <h2>Code decides. The model only words it.</h2>
+      <p class="lead">Seven agents are deterministic code that you can test. The eighth, the Coordinator, runs NVIDIA Nemotron to write the briefing, and every number in its text is checked against the plan.</p>
+    </div>
+    <div class="flow reveal d1" id="flow"></div>
+    <div class="loop" aria-hidden="true"><div class="arc" id="arc"><span>Critic rejected 1 line → Planner retried</span></div></div>
+    <div class="console reveal d2">
+      <div class="console-top"><i></i><i></i><i></i><span>logs/trace-6e9327d09586.jsonl · recorded run, 8 August 2022</span></div>
+      <div class="console-body" id="console" aria-live="off"></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="race">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">8 August 2022 · river rising</p>
+      <h2>Two clinics where the medicine would lose the race.</h2>
+      <p class="lead">Days of medicine left against days until the road may close, before and after the plan. Next-day transfers only, because a flagged road gets nothing that takes a week.</p>
+    </div>
+    <div class="race-grid">
+      <div class="race reveal d1" data-race>
+        <h3>Unguwar Rimi PHC <small>P5 · road closes at 3,000 m³/s</small></h3>
+        <div class="bars">
+          <div class="bar"><label>Medicine left today <b>10.6 days</b></label><div class="track"><div class="fill stock" data-w="10.6"></div></div></div>
+          <div class="bar"><label>Road may close in <b>12.1 days</b></label><div class="track"><div class="fill road" data-w="12.1"></div></div></div>
+          <div class="bar"><label>Medicine after the plan <b>52.9 days</b></label><div class="track"><div class="fill after" data-w="52.9"></div></div></div>
+        </div>
+        <p class="verdict">Transfers of <b>90 courses from Sabon Gari PHC</b> and <b>150 from Kasuwa PHC</b>, both arriving on day 1.</p>
+      </div>
+      <div class="race reveal d2" data-race>
+        <h3>Tudun Wada PHC <small>P3 · road closes at 4,000 m³/s</small></h3>
+        <div class="bars">
+          <div class="bar"><label>Medicine left today <b>10.4 days</b></label><div class="track"><div class="fill stock" data-w="10.4"></div></div></div>
+          <div class="bar"><label>Road may close in <b>23.9 days</b></label><div class="track"><div class="fill road" data-w="23.9"></div></div></div>
+          <div class="bar"><label>Medicine after the plan <b>46.2 days</b></label><div class="track"><div class="fill after" data-w="46.2"></div></div></div>
+        </div>
+        <p class="verdict">The Critic <b>rejected an 8-day purchase</b> to this clinic. The retry used <b>next-day transfers</b> from Rafin Gora PHC and Sabon Gari PHC.</p>
+      </div>
+    </div>
+    <div class="plan-meta reveal d3">
+      <div><b>₦521,900</b><span>whole plan, 7 lines</span></div>
+      <div><b>1 retry</b><span>Critic rejected 1 line, then OK</span></div>
+      <div><b>200 from S2</b><span>purchase order, ₦500,000, 7-day lead</span></div>
+      <div><b>₦4,000,000</b><span>quarterly budget, never exceeded</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec tryit" id="try">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Try it · no install</p>
+      <h2>You are the pharmacist.</h2>
+      <p class="lead">This is the recorded 8 August plan. Approve, edit or reject each line. Then give the Memory Keeper a supplier note and see the next plan change. Nothing is ever sent: StockSense never places an order or moves stock on its own.</p>
+    </div>
+    <div class="app reveal d1">
+      <div class="app-top"><b>Plan for the pharmacist · Kafin LGA · 8 Aug 2022</b><span class="tag">every line re-checked against Zetaris</span><span class="tag syn">SYNTHETIC clinics</span></div>
+      <div class="app-body">
+        <div class="lines" id="lines"></div>
+        <div class="side">
+          <div class="panel">
+            <h4>Your decisions</h4>
+            <div class="tally"><div><b id="tA">0</b><span>approved</span></div><div><b id="tE">0</b><span>edited</span></div><div><b id="tR">0</b><span>rejected</span></div></div>
+            <p class="memout" id="decided" style="min-height:0;margin-top:12px"></p>
+          </div>
+          <div class="panel">
+            <h4>Purchase order</h4>
+            <div class="po" id="po"></div>
+          </div>
+          <div class="panel">
+            <h4>Tell the Memory Keeper (H-MEM)</h4>
+            <form class="memform" id="memform" autocomplete="off">
+              <label for="note" class="sr" style="position:absolute;left:-9999px">Supplier note</label>
+              <input id="note" name="note" placeholder="e.g. S2 was late again, use S3" maxlength="200">
+              <button class="btn primary sm" type="submit">Remember</button>
+            </form>
+            <div class="suggest"><button type="button" data-note="S2 was late again, use S3">S2 was late again, use S3</button><button type="button" data-note="S2 is fine now">S2 is fine now</button></div>
+            <div class="memout" id="memout" aria-live="polite"></div>
+          </div>
+          <div class="panel">
+            <h4>Briefing · Nemotron via Nightshift</h4>
+            <p class="brief" id="brief"></p>
+          </div>
+        </div>
+      </div>
+      <div class="foot-note">Recorded runs, replayed in your browser. The live app (<span class="mono">python3 run.py --serve</span>) runs the agents, stores notes in H-MEM and plans again. <a href="replay.html">Watch the recorded runs step by step →</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="results">
+  <div class="wrap results">
+    <div class="reveal">
+      <p class="eyebrow">A whole season, replayed</p>
+      <div class="vs">
+        <div class="us"><b data-count="73">73</b><span>clinic-days without medicine with StockSense</span></div>
+        <div class="them"><b data-count="93">93</b><span>with a naive reorder rule</span></div>
+      </div>
+      <p class="headline">20 fewer clinic-days, at <span>26% less spend</span>.</p>
+      <p class="lead" style="font-size:16px;margin-top:12px">₦18,279,200 against ₦24,541,000. Every day from 4 July to 31 October 2022 against the real GloFAS river at Lokoja, planning every 7 days. Stock, use, roads and supplier lateness are SYNTHETIC. Run <span class="mono">python3 eval/season.py</span>.</p>
+    </div>
+    <div class="reveal d2">
+      <p class="eyebrow" style="color:var(--muted)">Take one part away</p>
+      <div class="abl" id="abl"></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="stack">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">How it is built</p>
+      <h2>Three sponsors, each doing a real job.</h2>
+    </div>
+    <div class="stack">
+      <article class="card reveal d1">
+        <span class="who">Zetaris</span>
+        <h3>One view joins four sources</h3>
+        <p>The USL view <code>clinic_risk</code> is 38 lines of SQL. It joins sources that no single system holds.</p>
+        <ul><li>Clinic stock, Postgres on RDS <span class="tag syn">synthetic</span></li><li>Road register, spreadsheet <span class="tag syn">synthetic</span></li><li>GloFAS river at Lokoja <span class="tag real">real 2022</span></li><li>Open-Meteo rainfall <span class="tag real">real 2022</span></li></ul>
+        <p style="margin-top:16px">The Evaluator re-queries Zetaris for every number a plan line rests on. A line it can't re-verify goes on HOLD.</p>
+      </article>
+      <article class="card reveal d2">
+        <span class="who">Meterless</span>
+        <h3>H-MEM remembers between runs</h3>
+        <p>The pharmacist's supplier notes and the Forecaster's held road warnings live in H-MEM, with a trust ledger.</p>
+        <ul><li>A note at confidence ≥ 0.70 changes the next plan</li><li>A contradicting note drops it to 0.60 and asks the pharmacist</li><li>The unmodified reference implementation, run as a small Node sidecar</li></ul>
+      </article>
+      <article class="card reveal d3">
+        <span class="who">NVIDIA</span>
+        <h3>Nemotron writes the briefing</h3>
+        <p><code>nvidia/nemotron-3.5-lightning-30b-a3b</code>, called through Nightshift, turns the verified plan into words.</p>
+        <ul><li>Every number in its text must appear in the plan</li><li>If one doesn't, or Nightshift is down, a fixed template is used and the trace says why</li><li>Each recorded call keeps its compute receipt</li></ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="demo">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Demo</p>
+      <h2>The whole workflow in under three minutes.</h2>
+    </div>
+    <div class="video reveal d1" id="video">
+      <button class="poster" type="button" id="playVideo" aria-label="Play the StockSense demo video (loads YouTube)">
+        <span class="play" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg></span>
+        <span class="vmeta"><span><b>StockSense: Before the Rain</b><span>Narrated walkthrough · plays from YouTube when you press play</span></span></span>
+      </button>
+    </div>
+    <p class="cap">Video on <a href="https://youtu.be/4g-uzi6Ylp8">YouTube</a>. Background: flooding near Gerinya, Kogi State, 14 October 2022, Sentinel-2. Contains modified Copernicus Sentinel data 2022, via <a href="https://commons.wikimedia.org/wiki/File:Disastrous_floods_affect_Nigeria.jpg">Wikimedia Commons</a>.</p>
+  </div>
+</section>
+
+<section class="sec" id="proof">
+  <div class="wrap proof">
+    <div class="term reveal">
+      <div class="console-top"><i></i><i></i><i></i><span>~/stocksense</span></div>
+      <div class="term-body" id="term"></div>
+    </div>
+    <div class="reveal d2">
+      <p class="eyebrow">Proof, not promises</p>
+      <div class="counter"><b id="pc">0</b><span>/27</span></div>
+      <h3 style="font-size:28px;margin:16px 0 12px">Every number on this page, checked by one command.</h3>
+      <p class="lead" style="font-size:16px"><span class="mono">python3 prove.py</span> replays the recorded Zetaris and Nightshift responses and checks each claim twice: the README must state it, and a fresh run must produce it. No keys, no cluster, about 10 seconds. CI runs it with 32 tests on every push.</p>
+      <div class="cta" style="margin-top:24px"><a class="btn ghost sm" href="https://github.com/Osiyomeoh/stocksense#prove-it-no-keys-no-cluster-about-10-seconds">How to run it</a><a class="btn ghost sm" href="https://github.com/Osiyomeoh/stocksense/actions">CI runs</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="limits">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Honest limits</p>
+      <h2>What this is not, yet.</h2>
+    </div>
+    <div class="limits">
+      <div class="limit reveal d1"><b>Synthetic clinics</b><span>Stock, use, roads and closing levels are a synthetic Kafin LGA scenario. River and rain are real 2022 data.</span></div>
+      <div class="limit reveal d2"><b>A warning, not a date</b><span>The August surge outruns any extrapolation from the week before. So a flagged road gets next-day transfers only.</span></div>
+      <div class="limit reveal d3"><b>A human approves everything</b><span>StockSense drafts. It never places an order or moves stock on its own.</span></div>
+      <div class="limit reveal d4"><b>Not a clinical tool</b><span>It plans logistics for one medicine, ACT for malaria. It gives no medical advice.</span></div>
+    </div>
+    <div class="sec-head reveal" style="margin:72px 0 24px">
+      <p class="eyebrow">Next</p>
+      <h3 style="font-size:28px">Real data from one LGA, then a pilot with its pharmacists.</h3>
+      <p class="lead" style="font-size:16px">Its stock reports and road register in place of the synthetic clinics and roads. More medicines than malaria treatment, a stronger river forecast, and approvals by SMS or WhatsApp. These are plans, not results.</p>
+    </div>
+  </div>
+</section>
+
+<section class="closer" id="close">
+  <div class="wrap">
+    <h2 class="reveal">StockSense drafts the plan before the rain. <span>A pharmacist decides.</span></h2>
+    <div class="cta reveal d1"><a class="btn primary" href="https://github.com/Osiyomeoh/stocksense">Read the code</a><a class="btn ghost" href="replay.html">Watch recorded runs</a><a class="btn ghost" href="deck.pdf">Deck (PDF)</a></div>
+    <div class="links reveal d2">
+      <a href="https://github.com/Osiyomeoh/stocksense"><b>Code</b><span>github.com/Osiyomeoh/stocksense</span></a>
+      <a href="https://youtu.be/4g-uzi6Ylp8"><b>Demo video</b><span>youtu.be/4g-uzi6Ylp8</span></a>
+      <a href="replay.html"><b>Recorded runs</b><span>step-by-step replay, no install</span></a>
+      <a href="deck.pdf"><b>Deck</b><span>15 slides, PDF</span></a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div><b>StockSense: Before the Rain</b><br>Sam Aleonomoh · Lagos · Open Agent Hackathon 2026, Track 1.<br>Not a clinical tool. StockSense drafts a plan; a pharmacist approves every action.</div>
+    <div>Data: <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> (<a href="https://open-meteo.com/en/licence">CC BY 4.0</a>). River discharge from GloFAS, Copernicus Emergency Management Service, via the <a href="https://open-meteo.com/en/docs/flood-api">Open-Meteo flood API</a>. Clinics, stock, roads and road closing levels are SYNTHETIC. Photos via Wikimedia Commons, credited where they appear: Sentinel-2 image of the 2022 Kogi flood (contains modified Copernicus Sentinel data 2022), Sani Maikatanga (CC BY-SA 4.0), Badung Samuel Yohanna, CDC / President's Malaria Initiative (public domain). The people shown are not StockSense users. Sound on this page is synthesized in your browser. 3D by <a href="https://threejs.org/">three.js</a> (MIT).</div>
+  </div>
+</footer>
+
+<script>window.SS = {"names":{"P1":"Kafin Central PHC","P2":"Gidan Ruwa PHC","P3":"Tudun Wada PHC","P4":"Sabon Gari PHC","P5":"Unguwar Rimi PHC","P6":"Dutsen Kura PHC","P7":"Rafin Gora PHC","P8":"Kasuwa PHC"},"river":{"time":["2022-07-01","2022-07-02","2022-07-03","2022-07-04","2022-07-05","2022-07-06","2022-07-07","2022-07-08","2022-07-09","2022-07-10","2022-07-11","2022-07-12","2022-07-13","2022-07-14","2022-07-15","2022-07-16","2022-07-17","2022-07-18","2022-07-19","2022-07-20","2022-07-21","2022-07-22","2022-07-23","2022-07-24","2022-07-25","2022-07-26","2022-07-27","2022-07-28","2022-07-29","2022-07-30","2022-07-31","2022-08-01","2022-08-02","2022-08-03","2022-08-04","2022-08-05","2022-08-06","2022-08-07","2022-08-08","2022-08-09","2022-08-10","2022-08-11","2022-08-12","2022-08-13","2022-08-14","2022-08-15","2022-08-16","2022-08-17","2022-08-18","2022-08-19","2022-08-20","2022-08-21","2022-08-22","2022-08-23","2022-08-24","2022-08-25","2022-08-26","2022-08-27","2022-08-28","2022-08-29","2022-08-30","2022-08-31","2022-09-01","2022-09-02","2022-09-03","2022-09-04","2022-09-05","2022-09-06","2022-09-07","2022-09-08","2022-09-09","2022-09-10","2022-09-11","2022-09-12","2022-09-13","2022-09-14","2022-09-15","2022-09-16","2022-09-17","2022-09-18","2022-09-19","2022-09-20","2022-09-21","2022-09-22","2022-09-23","2022-09-24","2022-09-25","2022-09-26","2022-09-27","2022-09-28","2022-09-29","2022-09-30","2022-10-01","2022-10-02","2022-10-03","2022-10-04","2022-10-05","2022-10-06","2022-10-07","2022-10-08","2022-10-09","2022-10-10","2022-10-11","2022-10-12","2022-10-13","2022-10-14","2022-10-15","2022-10-16","2022-10-17","2022-10-18","2022-10-19","2022-10-20","2022-10-21","2022-10-22","2022-10-23","2022-10-24","2022-10-25","2022-10-26","2022-10-27","2022-10-28","2022-10-29","2022-10-30","2022-10-31"],"q":[1087.93,1085.43,1070.52,1058.25,1063.14,1077.95,1095.48,1123.61,1157.78,1192.99,1204.04,1201.26,1195.74,1184.77,1171.2,1160.45,1160.45,1152.45,1144.51,1149.8,1168.5,1201.26,1275.44,1363.58,1408.29,1451.11,1502.14,1551.39,1594.88,1628.3,1658.59,1654.77,1689.44,1728.82,1769.11,1814.52,1852.53,1891.34,1975.97,2136.96,2305.75,2470.72,2721.7,2957.01,3053.92,3082.19,3117.89,3161.28,3205.27,3249.87,3310.31,3348.66,3379.65,3434.58,3547.13,3671.82,3766.04,3907.41,4054.09,4206.27,4344.1,4517.56,4665.59,4840.72,5010.87,5115.82,5235.01,6667.07,7743.62,8164.82,8451.79,8648.68,8870.56,9098.14,9483.18,10138.12,10863.25,11533.53,12021.64,12386.96,12617.27,12822.3,13090.82,13395.76,13771.09,14156.94,14386.99,14486.71,14486.71,14520.12,14620.77,14654.48,14688.26,14654.48,14553.6,14386.99,14189.57,14027.13,13898.53,13834.66,13802.84,13739.42,13582.13,13457.61,13334.21,13181.56,13030.66,12792.81,12588.25,12358.48,12021.64,11747.98,11454.13,11193.37,10938.57,10664.96,10422.18,10161.49,9930.16,9704.1,9483.18,9267.3,9035.5]},"rain":[3.4,0,14.7,0.8,2.1,0,13.3,0.3,10.4,0.4,0.4,0.4,2.2,0.4,5.1,0.5,0.3,0.4,0.1,0,7.4,6.5,14.9,3.8,7.7,21.1,10.2,18.0,8.5,6.8,9.0,2.0,0.2,0,0.4,0,0,0.7,2.2,1.0,0.4,5.8,27.5,9.3,13.9,7.2,0.2,0,0.9,12.5,0.5,0.2,2.4,3.0,0.1,5.8,20.3,2.5,2.5,8.3,5.3,4.5,9.2,11.6,5.4,1.6,0,2.6,1.8,0.8,0.4,10.9,21.8,12.3,0.4,0.5,5.3,0,0.8,5.1,26.4,6.3,6.9,12.2,9.8,2.6,12.4,1.5,16.7,4.7,3.8,11.0,15.5,19.5,0.4,0,13.6,15.3,18.0,5.5,16.1,0.1,0,2.7,25.4,5.5,0,0,0,0,0.8,0,0.3,0,1.8,9.8,5.6,0,0,0,0,0,0],"roads":[{"id":"P5","thr":3000,"warn":"2022-07-23","shut":"2022-08-14","ahead":22},{"id":"P3","thr":4000,"warn":"2022-07-29","shut":"2022-08-28","ahead":30},{"id":"P7","thr":9000,"warn":"2022-08-13","shut":"2022-09-12","ahead":30}],"trace":[{"agent":"DataAgent","label":"DataAgent","action":"zetaris.clinic_risk","status":"ok","model":"","out":"8 clinics"},{"agent":"DataAgent","label":"DataAgent","action":"zetaris.river","status":"ok","model":"","out":"39 days, last 1975.97"},{"agent":"MemoryKeeper","label":"MemoryKeeper","action":"hmem.add","status":"ok","model":"","out":"Road to P3 warned on 2022-08-08: at up to +85/day, could reach 4000 in 23.9 days"},{"agent":"MemoryKeeper","label":"MemoryKeeper","action":"hmem.add","status":"ok","model":"","out":"Road to P5 warned on 2022-08-08: at up to +85/day, could reach 3000 in 12.1 days"},{"agent":"Forecaster","label":"Forecaster","action":"road_forecast","status":"ok","model":"","out":"road not flood-prone"},{"agent":"Forecaster","label":"Forecaster","action":"road_forecast","status":"ok","model":"","out":"road not flood-prone"},{"agent":"Forecaster","label":"Forecaster","action":"road_forecast","status":"ok","model":"","out":"at up to +85/day, could reach 4000 in 23.9 days"},{"agent":"Forecaster","label":"Forecaster","action":"road_forecast","status":"ok","model":"","out":"road not flood-prone"},{"agent":"Forecaster","label":"Forecaster","action":"road_forecast","status":"ok","model":"","out":"at up to +85/day, could reach 3000 in 12.1 days"},{"agent":"Forecaster","label":"Forecaster","action":"road_forecast","status":"ok","model":"","out":"road not flood-prone"},{"agent":"Forecaster","label":"Forecaster","action":"road_forecast","status":"ok","model":"","out":"at up to +85/day, 9000 is 83 days away (beyond 30)"},{"agent":"Forecaster","label":"Forecaster","action":"road_forecast","status":"ok","model":"","out":"road not flood-prone"},{"agent":"Sentinels","label":"Sentinel:P1","action":"flags","status":"ok","model":"","out":"none"},{"agent":"Sentinels","label":"Sentinel:P2","action":"flags","status":"ok","model":"","out":"below_safety"},{"agent":"Sentinels","label":"Sentinel:P3","action":"flags","status":"ok","model":"","out":"below_safety,road_closing"},{"agent":"Sentinels","label":"Sentinel:P4","action":"flags","status":"ok","model":"","out":"none"},{"agent":"Sentinels","label":"Sentinel:P5","action":"flags","status":"ok","model":"","out":"below_safety,road_closing"},{"agent":"Sentinels","label":"Sentinel:P6","action":"flags","status":"ok","model":"","out":"below_safety"},{"agent":"Sentinels","label":"Sentinel:P7","action":"flags","status":"ok","model":"","out":"none"},{"agent":"Sentinels","label":"Sentinel:P8","action":"flags","status":"ok","model":"","out":"none"},{"agent":"Planner","label":"Planner","action":"draft","status":"ok","model":"","out":"6 lines, ₦918,200"},{"agent":"Critic","label":"Critic","action":"review","status":"rejected","model":"","out":"S2→P3 arrives day 8; road could close within 23.9 days"},{"agent":"Planner","label":"Planner","action":"draft","status":"ok","model":"","out":"7 lines, ₦521,900"},{"agent":"Critic","label":"Critic","action":"review","status":"ok","model":"","out":"ok"},{"agent":"Evaluator","label":"Evaluator","action":"re-query","status":"ok","model":"","out":"7 verified, 0 held"},{"agent":"Coordinator","label":"Coordinator","action":"briefing","status":"ok","model":"nvidia/nemotron-3.5-lightning-30b-a3b","out":"all numbers match the plan"}],"plan":[{"kind":"transfer","to":"P5","qty":90,"cost":4950,"deliver_day":1,"source":"P4","why":"P4 has 90 above its keep level; 33 km via the LGA store"},{"kind":"transfer","to":"P5","qty":150,"cost":4650,"deliver_day":1,"source":"P8","why":"P8 has 150 above its keep level; 31 km via the LGA store"},{"kind":"transfer","to":"P3","qty":48,"cost":5700,"deliver_day":1,"source":"P7","why":"P7 has 48 above its keep level; 38 km via the LGA store"},{"kind":"transfer","to":"P3","qty":262,"cost":3900,"deliver_day":1,"source":"P4","why":"P4 has 262 above its keep level; 26 km via the LGA store"},{"kind":"transfer","to":"P2","qty":84,"cost":2700,"deliver_day":1,"source":"P8","why":"P8 has 84 above its keep level; 18 km via the LGA store"},{"kind":"purchase","to":"P2","qty":46,"cost":0,"deliver_day":8,"source":"S2","why":"from the S2 order, delivered via the LGA store"},{"kind":"purchase","to":"P6","qty":6,"cost":0,"deliver_day":8,"source":"S2","why":"from the S2 order, delivered via the LGA store"}],"po":{"supplier":"S2","qty":200,"cost":500000,"lead_days":7,"why":"cheapest whole order: gap 52, min order 200 at ₦2500/course"},"cost":521900,"budget":4000000,"after":{"po":{"supplier":"S3","qty":500,"cost":1000000,"lead_days":7,"why":"cheapest whole order: gap 52, min order 500 at ₦2000/course"},"cost":1021900},"briefing":{"text":"Clinics P3 and P5 flag below_safety and road_closing; P2 and P6 flag below_safety only. Roads: P3 at up to +85/day, could reach 4000 in 23.9 days; P5 at up to +85/day, could reach 3000 in 12.1 days. Transfers day 1: P4→P5 90, P8→P5 150, P7→P3 48, P4→P3 262, P8→P2 84. Purchases from S2: 46 to P2 and 6 to P6, deliver day 8. Purchase order S2 200 qty at cost 500000 naira, lead 7 days. Total cost 521900 naira. Held none, unmet none. Approve, edit or reject each line.","model":"nvidia/nemotron-3.5-lightning-30b-a3b","source":"nemotron","reason":"all numbers match the plan"},"ablation":[{"label":"StockSense","days":73,"spend":18279200,"us":true},{"label":"without held road warnings","days":73,"spend":18436750,"us":false},{"label":"without supplier memory","days":73,"spend":17097400,"us":false},{"label":"naive reorder rule","days":93,"spend":24541000,"us":false},{"label":"without the Critic","days":111,"spend":40459900,"us":false},{"label":"without the river","days":128,"spend":30246450,"us":false}],"prove":["PASS  01-plan-2022-07-04.json reproduces its recorded output","PASS  02-no-snapshot.json reproduces its recorded output","PASS  03-bad-date.json reproduces its recorded output","PASS  04-plan-2022-08-08-rising-river.json reproduces its recorded output","PASS  07-04 plan costs ₦514,850","PASS  07-04 plan: 4 transfers, 1 purchase","PASS  07-04 puts P6 on HOLD","PASS  every trace event has all fields","PASS  08-08 plan costs ₦521,900","PASS  08-08 flags P3 and P5 (23.9 and 12.1 days)","PASS  08-08 needs one Critic retry","PASS  the Critic rejects the 8-day purchase to P3","PASS  08-08 briefing is from Nemotron","PASS  every number in the briefing is in the plan","PASS  no notes: order is 200 from S2, ₦500,000","PASS  a note is stored at confidence 0.80","PASS  after the note: 500 from S3, ₦1,000,000","PASS  the plan stays inside the ₦4,000,000 budget","PASS  a contradicting note drops it to 0.60","PASS  below 0.70 it is escalated, not applied","PASS  backtest row P3 matches the real 2022 river","PASS  backtest row P5 matches the real 2022 river","PASS  backtest row P7 matches the real 2022 river","PASS  season: naive rule leaves 93 clinic-days without medicine","PASS  season: StockSense leaves 73","PASS  season: 20 fewer clinic-days, 26% less spend","PASS  UI header states the same season result","","27/27 claims proven"]};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
-const D = {"july": {"run_id": "d87b2c5f22bf", "as_of": "2022-07-04", "sample_mode": true, "status": "needs_review", "roads": {"P1": {"clinic_id": "P1", "closes_in_days": null, "confidence": null, "river_m3s": 1058.25, "slope_m3s_per_day": -2.5, "reason": "road not flood-prone"}, "P2": {"clinic_id": "P2", "closes_in_days": null, "confidence": null, "river_m3s": 1058.25, "slope_m3s_per_day": -2.5, "reason": "road not flood-prone"}, "P3": {"clinic_id": "P3", "closes_in_days": null, "confidence": 0.94, "river_m3s": 1058.25, "slope_m3s_per_day": -2.5, "reason": "river 1058 not rising; closes above 4000"}, "P4": {"clinic_id": "P4", "closes_in_days": null, "confidence": null, "river_m3s": 1058.25, "slope_m3s_per_day": -2.5, "reason": "road not flood-prone"}, "P5": {"clinic_id": "P5", "closes_in_days": null, "confidence": 0.94, "river_m3s": 1058.25, "slope_m3s_per_day": -2.5, "reason": "river 1058 not rising; closes above 3000"}, "P6": {"clinic_id": "P6", "closes_in_days": null, "confidence": null, "river_m3s": 1058.25, "slope_m3s_per_day": -2.5, "reason": "road not flood-prone"}, "P7": {"clinic_id": "P7", "closes_in_days": null, "confidence": 0.94, "river_m3s": 1058.25, "slope_m3s_per_day": -2.5, "reason": "river 1058 not rising; closes above 9000"}, "P8": {"clinic_id": "P8", "closes_in_days": null, "confidence": null, "river_m3s": 1058.25, "slope_m3s_per_day": -2.5, "reason": "road not flood-prone"}}, "flags": {"P1": [], "P2": ["below_safety"], "P3": ["below_safety"], "P4": [], "P5": ["below_safety"], "P6": ["missing_reading"], "P7": [], "P8": []}, "plan": [{"kind": "transfer", "to": "P3", "qty": 190, "cost": 3900, "deliver_day": 1, "source": "P4", "why": "P4 has 190 above its keep level; 26 km via the LGA store"}, {"kind": "transfer", "to": "P3", "qty": 23, "cost": 3600, "deliver_day": 1, "source": "P8", "why": "P8 has 23 above its keep level; 24 km via the LGA store"}, {"kind": "transfer", "to": "P2", "qty": 240, "cost": 2700, "deliver_day": 1, "source": "P8", "why": "P8 has 240 above its keep level; 18 km via the LGA store"}, {"kind": "transfer", "to": "P5", "qty": 21, "cost": 4650, "deliver_day": 1, "source": "P8", "why": "P8 has 21 above its keep level; 31 km via the LGA store"}, {"kind": "purchase", "to": "P5", "qty": 18, "cost": 0, "deliver_day": 8, "source": "S2", "why": "from the S2 order, delivered via the LGA store"}], "held": [{"clinic": "P6", "reason": "no stock reading for this snapshot; ask the clinic before planning"}], "purchase_order": {"supplier": "S2", "qty": 200, "cost": 500000, "lead_days": 7, "why": "cheapest whole order: gap 18, min order 200 at ₦2500/course"}, "unmet": {}, "violations": [], "checks": [{"check": "P2 stock and daily use", "ok": true}, {"check": "P3 stock and daily use", "ok": true}, {"check": "P4 stock and daily use", "ok": true}, {"check": "P5 stock and daily use", "ok": true}, {"check": "P8 stock and daily use", "ok": true}, {"check": "river discharge on as_of", "ok": true}], "cost": 514850, "retries": 0, "memory": {"avoid": [], "escalate": [], "memories": []}, "briefing": {"text": "P2, P3 and P5 are below safety stock; P6 has a missing reading and is held. Transfers: 190 from P4 to P3, 23 from P8 to P3, 240 from P8 to P2, 21 from P8 to P5, all deliver day 1. Purchase of 18 from S2 to P5 deliver day 8, cost 500000 naira; total cost_naira 514850. Below safety stock for P2, P3, P5 requires pharmacist decision. Approve, edit or reject each line.", "model": "nvidia/nemotron-3.5-lightning-30b-a3b", "source": "nemotron", "reason": "all numbers match the plan"}, "trace": "logs/trace-d87b2c5f22bf.jsonl", "events": [{"timestamp": "2026-10-26T00:09:02.531+00:00", "run_id": "d87b2c5f22bf", "agent_name": "DataAgent", "action": "zetaris.clinic_risk", "input_summary": "2022-07-04", "output_summary": "8 clinics", "target_agent": "Forecaster", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.532+00:00", "run_id": "d87b2c5f22bf", "agent_name": "DataAgent", "action": "zetaris.river", "input_summary": "<= 2022-07-04", "output_summary": "4 days, last 1058.25", "target_agent": "Forecaster", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.732+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P1", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.732+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P2", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.733+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P3", "output_summary": "river 1058 not rising; closes above 4000", "target_agent": "Sentinel", "model": null, "confidence": 0.94, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.733+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P4", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.733+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P5", "output_summary": "river 1058 not rising; closes above 3000", "target_agent": "Sentinel", "model": null, "confidence": 0.94, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.733+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P6", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.733+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P7", "output_summary": "river 1058 not rising; closes above 9000", "target_agent": "Sentinel", "model": null, "confidence": 0.94, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.733+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P8", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.734+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Sentinel:P1", "action": "flags", "input_summary": "P1", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.734+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Sentinel:P2", "action": "flags", "input_summary": "P2", "output_summary": "below_safety", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.734+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Sentinel:P3", "action": "flags", "input_summary": "P3", "output_summary": "below_safety", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.734+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Sentinel:P4", "action": "flags", "input_summary": "P4", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.734+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Sentinel:P5", "action": "flags", "input_summary": "P5", "output_summary": "below_safety", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.734+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Sentinel:P6", "action": "flags", "input_summary": "P6", "output_summary": "missing_reading", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "hold"}, {"timestamp": "2026-10-26T00:09:02.734+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Sentinel:P7", "action": "flags", "input_summary": "P7", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.734+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Sentinel:P8", "action": "flags", "input_summary": "P8", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.992+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Planner", "action": "draft", "input_summary": "{}", "output_summary": "5 lines, ₦514,850", "target_agent": "Critic", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.992+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Critic", "action": "review", "input_summary": "5 lines", "output_summary": "ok", "target_agent": "Evaluator", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.994+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Evaluator", "action": "re-query", "input_summary": "5 lines", "output_summary": "5 verified, 0 held", "target_agent": "Coordinator", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.995+00:00", "run_id": "d87b2c5f22bf", "agent_name": "Coordinator", "action": "briefing", "input_summary": "5 lines, ₦514,850", "output_summary": "all numbers match the plan", "target_agent": "Pharmacist", "model": "nvidia/nemotron-3.5-lightning-30b-a3b", "confidence": null, "retry_count": 0, "status": "ok"}]}, "august": {"run_id": "6e9327d09586", "as_of": "2022-08-08", "sample_mode": true, "status": "ok", "roads": {"P1": {"clinic_id": "P1", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}, "P2": {"clinic_id": "P2", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}, "P3": {"clinic_id": "P3", "closes_in_days": 23.9, "confidence": 0.98, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "at up to +85/day, could reach 4000 in 23.9 days"}, "P4": {"clinic_id": "P4", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}, "P5": {"clinic_id": "P5", "closes_in_days": 12.1, "confidence": 0.98, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "at up to +85/day, could reach 3000 in 12.1 days"}, "P6": {"clinic_id": "P6", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}, "P7": {"clinic_id": "P7", "closes_in_days": null, "confidence": 0.98, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "at up to +85/day, 9000 is 83 days away (beyond 30)"}, "P8": {"clinic_id": "P8", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}}, "flags": {"P1": [], "P2": ["below_safety"], "P3": ["below_safety", "road_closing"], "P4": [], "P5": ["below_safety", "road_closing"], "P6": ["below_safety"], "P7": [], "P8": []}, "plan": [{"kind": "transfer", "to": "P5", "qty": 90, "cost": 4950, "deliver_day": 1, "source": "P4", "why": "P4 has 90 above its keep level; 33 km via the LGA store"}, {"kind": "transfer", "to": "P5", "qty": 150, "cost": 4650, "deliver_day": 1, "source": "P8", "why": "P8 has 150 above its keep level; 31 km via the LGA store"}, {"kind": "transfer", "to": "P3", "qty": 48, "cost": 5700, "deliver_day": 1, "source": "P7", "why": "P7 has 48 above its keep level; 38 km via the LGA store"}, {"kind": "transfer", "to": "P3", "qty": 262, "cost": 3900, "deliver_day": 1, "source": "P4", "why": "P4 has 262 above its keep level; 26 km via the LGA store"}, {"kind": "transfer", "to": "P2", "qty": 84, "cost": 2700, "deliver_day": 1, "source": "P8", "why": "P8 has 84 above its keep level; 18 km via the LGA store"}, {"kind": "purchase", "to": "P2", "qty": 46, "cost": 0, "deliver_day": 8, "source": "S2", "why": "from the S2 order, delivered via the LGA store"}, {"kind": "purchase", "to": "P6", "qty": 6, "cost": 0, "deliver_day": 8, "source": "S2", "why": "from the S2 order, delivered via the LGA store"}], "held": [], "purchase_order": {"supplier": "S2", "qty": 200, "cost": 500000, "lead_days": 7, "why": "cheapest whole order: gap 52, min order 200 at ₦2500/course"}, "unmet": {}, "violations": [], "checks": [{"check": "P2 stock and daily use", "ok": true}, {"check": "P3 stock and daily use", "ok": true}, {"check": "P4 stock and daily use", "ok": true}, {"check": "P5 stock and daily use", "ok": true}, {"check": "P6 stock and daily use", "ok": true}, {"check": "P7 stock and daily use", "ok": true}, {"check": "P8 stock and daily use", "ok": true}, {"check": "river discharge on as_of", "ok": true}], "cost": 521900, "retries": 1, "memory": {"avoid": [], "escalate": [], "memories": []}, "briefing": {"text": "Clinics P3 and P5 flag below_safety and road_closing; P2 and P6 flag below_safety only. Roads: P3 at up to +85/day, could reach 4000 in 23.9 days; P5 at up to +85/day, could reach 3000 in 12.1 days. Transfers day 1: P4→P5 90, P8→P5 150, P7→P3 48, P4→P3 262, P8→P2 84. Purchases from S2: 46 to P2 and 6 to P6, deliver day 8. Purchase order S2 200 qty at cost 500000 naira, lead 7 days. Total cost 521900 naira. Held none, unmet none. Approve, edit or reject each line.", "model": "nvidia/nemotron-3.5-lightning-30b-a3b", "source": "nemotron", "reason": "all numbers match the plan"}, "trace": "logs/trace-6e9327d09586.jsonl", "events": [{"timestamp": "2026-10-26T00:09:02.996+00:00", "run_id": "6e9327d09586", "agent_name": "DataAgent", "action": "zetaris.clinic_risk", "input_summary": "2022-08-08", "output_summary": "8 clinics", "target_agent": "Forecaster", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:02.997+00:00", "run_id": "6e9327d09586", "agent_name": "DataAgent", "action": "zetaris.river", "input_summary": "<= 2022-08-08", "output_summary": "39 days, last 1975.97", "target_agent": "Forecaster", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.171+00:00", "run_id": "6e9327d09586", "agent_name": "MemoryKeeper", "action": "hmem.add", "input_summary": "mem-1", "output_summary": "Road to P3 warned on 2022-08-08: at up to +85/day, could reach 4000 in 23.9 days", "target_agent": "Forecaster", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.172+00:00", "run_id": "6e9327d09586", "agent_name": "MemoryKeeper", "action": "hmem.add", "input_summary": "mem-2", "output_summary": "Road to P5 warned on 2022-08-08: at up to +85/day, could reach 3000 in 12.1 days", "target_agent": "Forecaster", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.173+00:00", "run_id": "6e9327d09586", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P1", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.173+00:00", "run_id": "6e9327d09586", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P2", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.173+00:00", "run_id": "6e9327d09586", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P3", "output_summary": "at up to +85/day, could reach 4000 in 23.9 days", "target_agent": "Sentinel", "model": null, "confidence": 0.98, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.174+00:00", "run_id": "6e9327d09586", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P4", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.174+00:00", "run_id": "6e9327d09586", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P5", "output_summary": "at up to +85/day, could reach 3000 in 12.1 days", "target_agent": "Sentinel", "model": null, "confidence": 0.98, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.174+00:00", "run_id": "6e9327d09586", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P6", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.175+00:00", "run_id": "6e9327d09586", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P7", "output_summary": "at up to +85/day, 9000 is 83 days away (beyond 30)", "target_agent": "Sentinel", "model": null, "confidence": 0.98, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.175+00:00", "run_id": "6e9327d09586", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P8", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.175+00:00", "run_id": "6e9327d09586", "agent_name": "Sentinel:P1", "action": "flags", "input_summary": "P1", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.175+00:00", "run_id": "6e9327d09586", "agent_name": "Sentinel:P2", "action": "flags", "input_summary": "P2", "output_summary": "below_safety", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.176+00:00", "run_id": "6e9327d09586", "agent_name": "Sentinel:P3", "action": "flags", "input_summary": "P3", "output_summary": "below_safety,road_closing", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.177+00:00", "run_id": "6e9327d09586", "agent_name": "Sentinel:P4", "action": "flags", "input_summary": "P4", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.177+00:00", "run_id": "6e9327d09586", "agent_name": "Sentinel:P5", "action": "flags", "input_summary": "P5", "output_summary": "below_safety,road_closing", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.178+00:00", "run_id": "6e9327d09586", "agent_name": "Sentinel:P6", "action": "flags", "input_summary": "P6", "output_summary": "below_safety", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.178+00:00", "run_id": "6e9327d09586", "agent_name": "Sentinel:P7", "action": "flags", "input_summary": "P7", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.178+00:00", "run_id": "6e9327d09586", "agent_name": "Sentinel:P8", "action": "flags", "input_summary": "P8", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.607+00:00", "run_id": "6e9327d09586", "agent_name": "Planner", "action": "draft", "input_summary": "{}", "output_summary": "6 lines, ₦918,200", "target_agent": "Critic", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.608+00:00", "run_id": "6e9327d09586", "agent_name": "Critic", "action": "review", "input_summary": "6 lines", "output_summary": "S2→P3 arrives day 8; road could close within 23.9 days", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "rejected"}, {"timestamp": "2026-10-26T00:09:04.609+00:00", "run_id": "6e9327d09586", "agent_name": "Planner", "action": "draft", "input_summary": "{'no_purchase_to': ['P3']}", "output_summary": "7 lines, ₦521,900", "target_agent": "Critic", "model": null, "confidence": null, "retry_count": 1, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.609+00:00", "run_id": "6e9327d09586", "agent_name": "Critic", "action": "review", "input_summary": "7 lines", "output_summary": "ok", "target_agent": "Evaluator", "model": null, "confidence": null, "retry_count": 1, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.611+00:00", "run_id": "6e9327d09586", "agent_name": "Evaluator", "action": "re-query", "input_summary": "7 lines", "output_summary": "7 verified, 0 held", "target_agent": "Coordinator", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:04.614+00:00", "run_id": "6e9327d09586", "agent_name": "Coordinator", "action": "briefing", "input_summary": "7 lines, ₦521,900", "output_summary": "all numbers match the plan", "target_agent": "Pharmacist", "model": "nvidia/nemotron-3.5-lightning-30b-a3b", "confidence": null, "retry_count": 0, "status": "ok"}]}, "note": [{"action": "remembered", "supplier": "S2", "id": "mem-3", "content": "Avoid supplier S2: S2 was late again, use S3", "tags": ["supplier", "avoid", "S2"], "confidence": 0.8, "source": "pharmacist"}], "august_after_note": {"run_id": "9fea7d496316", "as_of": "2022-08-08", "sample_mode": true, "status": "ok", "roads": {"P1": {"clinic_id": "P1", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}, "P2": {"clinic_id": "P2", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}, "P3": {"clinic_id": "P3", "closes_in_days": 23.9, "confidence": 0.98, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "at up to +85/day, could reach 4000 in 23.9 days"}, "P4": {"clinic_id": "P4", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}, "P5": {"clinic_id": "P5", "closes_in_days": 12.1, "confidence": 0.98, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "at up to +85/day, could reach 3000 in 12.1 days"}, "P6": {"clinic_id": "P6", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}, "P7": {"clinic_id": "P7", "closes_in_days": null, "confidence": 0.98, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "at up to +85/day, 9000 is 83 days away (beyond 30)"}, "P8": {"clinic_id": "P8", "closes_in_days": null, "confidence": null, "river_m3s": 1975.97, "slope_m3s_per_day": 84.63, "reason": "road not flood-prone"}}, "flags": {"P1": [], "P2": ["below_safety"], "P3": ["below_safety", "road_closing"], "P4": [], "P5": ["below_safety", "road_closing"], "P6": ["below_safety"], "P7": [], "P8": []}, "plan": [{"kind": "transfer", "to": "P5", "qty": 90, "cost": 4950, "deliver_day": 1, "source": "P4", "why": "P4 has 90 above its keep level; 33 km via the LGA store"}, {"kind": "transfer", "to": "P5", "qty": 150, "cost": 4650, "deliver_day": 1, "source": "P8", "why": "P8 has 150 above its keep level; 31 km via the LGA store"}, {"kind": "transfer", "to": "P3", "qty": 48, "cost": 5700, "deliver_day": 1, "source": "P7", "why": "P7 has 48 above its keep level; 38 km via the LGA store"}, {"kind": "transfer", "to": "P3", "qty": 262, "cost": 3900, "deliver_day": 1, "source": "P4", "why": "P4 has 262 above its keep level; 26 km via the LGA store"}, {"kind": "transfer", "to": "P2", "qty": 84, "cost": 2700, "deliver_day": 1, "source": "P8", "why": "P8 has 84 above its keep level; 18 km via the LGA store"}, {"kind": "purchase", "to": "P2", "qty": 46, "cost": 0, "deliver_day": 8, "source": "S3", "why": "from the S3 order, delivered via the LGA store"}, {"kind": "purchase", "to": "P6", "qty": 6, "cost": 0, "deliver_day": 8, "source": "S3", "why": "from the S3 order, delivered via the LGA store"}], "held": [], "purchase_order": {"supplier": "S3", "qty": 500, "cost": 1000000, "lead_days": 7, "why": "cheapest whole order: gap 52, min order 500 at ₦2000/course"}, "unmet": {}, "violations": [], "checks": [{"check": "P2 stock and daily use", "ok": true}, {"check": "P3 stock and daily use", "ok": true}, {"check": "P4 stock and daily use", "ok": true}, {"check": "P5 stock and daily use", "ok": true}, {"check": "P6 stock and daily use", "ok": true}, {"check": "P7 stock and daily use", "ok": true}, {"check": "P8 stock and daily use", "ok": true}, {"check": "river discharge on as_of", "ok": true}], "cost": 1021900, "retries": 1, "memory": {"avoid": ["S2"], "escalate": [], "memories": [{"id": "mem-3", "content": "Avoid supplier S2: S2 was late again, use S3", "tags": ["supplier", "avoid", "S2"], "confidence": 0.8, "source": "pharmacist"}]}, "briefing": {"text": "Status: ok. Plan: transfer 90 from P4 to P5 (day 1); transfer 150 from P8 to P5 (day 1); transfer 48 from P7 to P3 (day 1); transfer 262 from P4 to P3 (day 1); transfer 84 from P8 to P2 (day 1); purchase 46 from S3 to P2 (day 8); purchase 6 from S3 to P6 (day 8). Total ₦1,021,900. Approve, edit or reject each line.", "model": null, "source": "template", "reason": "Nightshift unavailable: SAMPLE_MODE: no cached nightshift response for this request; run once live to record it"}, "trace": "logs/trace-9fea7d496316.jsonl", "events": [{"timestamp": "2026-10-26T00:09:05.205+00:00", "run_id": "9fea7d496316", "agent_name": "DataAgent", "action": "zetaris.clinic_risk", "input_summary": "2022-08-08", "output_summary": "8 clinics", "target_agent": "Forecaster", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.205+00:00", "run_id": "9fea7d496316", "agent_name": "DataAgent", "action": "zetaris.river", "input_summary": "<= 2022-08-08", "output_summary": "39 days, last 1975.97", "target_agent": "Forecaster", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.549+00:00", "run_id": "9fea7d496316", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P1", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.550+00:00", "run_id": "9fea7d496316", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P2", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.550+00:00", "run_id": "9fea7d496316", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P3", "output_summary": "at up to +85/day, could reach 4000 in 23.9 days", "target_agent": "Sentinel", "model": null, "confidence": 0.98, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.550+00:00", "run_id": "9fea7d496316", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P4", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.550+00:00", "run_id": "9fea7d496316", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P5", "output_summary": "at up to +85/day, could reach 3000 in 12.1 days", "target_agent": "Sentinel", "model": null, "confidence": 0.98, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.551+00:00", "run_id": "9fea7d496316", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P6", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.551+00:00", "run_id": "9fea7d496316", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P7", "output_summary": "at up to +85/day, 9000 is 83 days away (beyond 30)", "target_agent": "Sentinel", "model": null, "confidence": 0.98, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.551+00:00", "run_id": "9fea7d496316", "agent_name": "Forecaster", "action": "road_forecast", "input_summary": "P8", "output_summary": "road not flood-prone", "target_agent": "Sentinel", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.551+00:00", "run_id": "9fea7d496316", "agent_name": "Sentinel:P1", "action": "flags", "input_summary": "P1", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.551+00:00", "run_id": "9fea7d496316", "agent_name": "Sentinel:P2", "action": "flags", "input_summary": "P2", "output_summary": "below_safety", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.551+00:00", "run_id": "9fea7d496316", "agent_name": "Sentinel:P3", "action": "flags", "input_summary": "P3", "output_summary": "below_safety,road_closing", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.551+00:00", "run_id": "9fea7d496316", "agent_name": "Sentinel:P4", "action": "flags", "input_summary": "P4", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.551+00:00", "run_id": "9fea7d496316", "agent_name": "Sentinel:P5", "action": "flags", "input_summary": "P5", "output_summary": "below_safety,road_closing", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.552+00:00", "run_id": "9fea7d496316", "agent_name": "Sentinel:P6", "action": "flags", "input_summary": "P6", "output_summary": "below_safety", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.552+00:00", "run_id": "9fea7d496316", "agent_name": "Sentinel:P7", "action": "flags", "input_summary": "P7", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:05.552+00:00", "run_id": "9fea7d496316", "agent_name": "Sentinel:P8", "action": "flags", "input_summary": "P8", "output_summary": "none", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:06.149+00:00", "run_id": "9fea7d496316", "agent_name": "MemoryKeeper", "action": "hmem.recall", "input_summary": "mem-3", "output_summary": "Avoid supplier S2: S2 was late again, use S3 (confidence 0.80)", "target_agent": "Planner", "model": null, "confidence": 0.8, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:06.150+00:00", "run_id": "9fea7d496316", "agent_name": "Planner", "action": "draft", "input_summary": "{'avoid_suppliers': ['S2']}", "output_summary": "6 lines, ₦1,013,200", "target_agent": "Critic", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:06.150+00:00", "run_id": "9fea7d496316", "agent_name": "Critic", "action": "review", "input_summary": "6 lines", "output_summary": "S3→P3 arrives day 8; road could close within 23.9 days", "target_agent": "Planner", "model": null, "confidence": null, "retry_count": 0, "status": "rejected"}, {"timestamp": "2026-10-26T00:09:06.150+00:00", "run_id": "9fea7d496316", "agent_name": "Planner", "action": "draft", "input_summary": "{'avoid_suppliers': ['S2'], 'no_purchase_to': ['P3']}", "output_summary": "7 lines, ₦1,021,900", "target_agent": "Critic", "model": null, "confidence": null, "retry_count": 1, "status": "ok"}, {"timestamp": "2026-10-26T00:09:06.151+00:00", "run_id": "9fea7d496316", "agent_name": "Critic", "action": "review", "input_summary": "7 lines", "output_summary": "ok", "target_agent": "Evaluator", "model": null, "confidence": null, "retry_count": 1, "status": "ok"}, {"timestamp": "2026-10-26T00:09:06.153+00:00", "run_id": "9fea7d496316", "agent_name": "Evaluator", "action": "re-query", "input_summary": "7 lines", "output_summary": "7 verified, 0 held", "target_agent": "Coordinator", "model": null, "confidence": null, "retry_count": 0, "status": "ok"}, {"timestamp": "2026-10-26T00:09:06.154+00:00", "run_id": "9fea7d496316", "agent_name": "Coordinator", "action": "briefing", "input_summary": "7 lines, ₦1,021,900", "output_summary": "Nightshift unavailable: SAMPLE_MODE: no cached nightshift response for this request; run once live to record it", "target_agent": "Pharmacist", "model": null, "confidence": null, "retry_count": 0, "status": "fallback"}]}, "season": {"window": ["2022-07-04", "2022-10-31"], "plan_every_days": 7, "results": {"naive": {"stockout_days": 93, "courses_short": 654, "spend": 24541000, "waited_for_road_days": 490, "late_supplier_deliveries": 12, "by_clinic": {"P1": 0, "P2": 8, "P3": 16, "P4": 0, "P5": 50, "P6": 8, "P7": 5, "P8": 6}, "suppliers": ["S3", "S3", "S3", "S3", "S3", "S3", "S2", "S3", "S3", "S3", "S3", "S3", "S3", "S3", "S3", "S2", "S3", "S3"]}, "no_river": {"stockout_days": 128, "courses_short": 872, "spend": 30246450, "waited_for_road_days": 1036, "late_supplier_deliveries": 5, "by_clinic": {"P1": 0, "P2": 8, "P3": 29, "P4": 0, "P5": 79, "P6": 0, "P7": 12, "P8": 0}, "suppliers": ["S2", "S3", "S3", "S3", "S3", "S3", "S3", "S2", "S2", "S2", "S2", "S2", "S2", "S2", "S2", "S2", "S2", "S2"]}, "no_critic": {"stockout_days": 111, "courses_short": 731, "spend": 40459900, "waited_for_road_days": 1309, "late_supplier_deliveries": 5, "by_clinic": {"P1": 0, "P2": 8, "P3": 16, "P4": 0, "P5": 79, "P6": 0, "P7": 8, "P8": 0}, "suppliers": ["S2", "S3", "S3", "S3", "S3", "S3", "S3", "S2", "S2", "S2", "S2", "S2", "S2", "S2", "S2", "S2", "S2", "S2"]}, "no_held": {"stockout_days": 73, "courses_short": 498, "spend": 18436750, "waited_for_road_days": 140, "late_supplier_deliveries": 3, "by_clinic": {"P1": 0, "P2": 0, "P3": 25, "P4": 1, "P5": 46, "P6": 0, "P7": 0, "P8": 1}, "suppliers": ["S2", "S3", "S3", "S2", "S3", "S3", "S3", "S2", "S2", "S2", "S2", "S2", "S2", "S2"]}, "no_supplier_memory": {"stockout_days": 73, "courses_short": 498, "spend": 17097400, "waited_for_road_days": 77, "late_supplier_deliveries": 4, "by_clinic": {"P1": 0, "P2": 0, "P3": 25, "P4": 1, "P5": 46, "P6": 0, "P7": 0, "P8": 1}, "suppliers": ["S2", "S3", "S3", "S2", "S3", "S3", "S3", "S3", "S2", "S2", "S2", "S2", "S2", "S2"]}, "stocksense": {"stockout_days": 73, "courses_short": 498, "spend": 18279200, "waited_for_road_days": 77, "late_supplier_deliveries": 3, "by_clinic": {"P1": 0, "P2": 0, "P3": 25, "P4": 1, "P5": 46, "P6": 0, "P7": 0, "P8": 1}, "suppliers": ["S2", "S3", "S3", "S2", "S3", "S3", "S3", "S2", "S2", "S2", "S2", "S2", "S2"]}}}};
-const naira = n => "₦" + Math.round(n).toLocaleString("en-US");
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+(() => {
+"use strict";
+const SS = window.SS;
+const $ = (s, r = document) => r.querySelector(s);
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const NAME = SS.names;
+const fmt = (n) => n.toLocaleString("en-NG");
+const naira = (n) => "₦" + fmt(n);
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const dlabel = (iso) => { const [y, m, d] = iso.split("-").map(Number); return `${d} ${MONTHS[m - 1]} ${y}`; };
 
-const RUNS = {
-  july: { label: "4 July 2022", sub: "a clinic didn't report", run: D.july,
-    story: "Early July, river low. Clinic P6 sent no stock count, so the Planner won't guess: P6 goes on HOLD for the pharmacist to call, and everyone else gets a plan." },
-  august: { label: "8 August 2022", sub: "the river is rising", run: D.august,
-    story: "The river is climbing fast. The Forecaster warns that the roads to P3 and P5 could flood within weeks. The Planner's first draft sends P3 an order that takes 8 days to arrive; the Critic rejects it, and the retry covers P3 with next-day transfers from clinics that have spare." },
-  memory: { label: "8 August, after a note", sub: "the pharmacist teaches it", run: D.august_after_note,
-    story: "The pharmacist types “S2 was late again, use S3”. The Memory Keeper stores it in H-MEM at confidence 0.80, above the 0.70 trust gate, so the same day replanned now orders from S3 instead of S2." },
-  season: { label: "Whole season", sub: "Jul–Oct 2022, 120 days" },
-};
+/* ---------- sound: synthesized, off until the viewer turns it on ---------- */
+const Sound = (() => {
+  let ctx = null, master, rainG, riverG, on = false, dropTimer = 0, rainLevel = 0;
+  function noise(seconds, brown) {
+    const b = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate), d = b.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random() * 2 - 1;
+      if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w;
+    }
+    return b;
+  }
+  function loop(buf, chain) {
+    const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true;
+    let n = s; for (const c of chain) { n.connect(c); n = c; } s.start(); return s;
+  }
+  function init() {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination);
+    const comp = ctx.createDynamicsCompressor(); comp.connect(master);
+    rainG = ctx.createGain(); rainG.gain.value = 0;
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 900;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 7500;
+    loop(noise(3, false), [hp, lp, rainG, comp]);
+    riverG = ctx.createGain(); riverG.gain.value = 0;
+    const rl = ctx.createBiquadFilter(); rl.type = "lowpass"; rl.frequency.value = 260;
+    loop(noise(4, true), [rl, riverG, comp]);
+    const pad = ctx.createGain(); pad.gain.value = 0.018; pad.connect(comp);
+    for (const f of [110, 164.81, 220.5]) {
+      const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f;
+      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.07 + f / 4000; lg.gain.value = 0.6;
+      lfo.connect(lg); lg.connect(o.detune); o.connect(pad); o.start(); lfo.start();
+    }
+    master.connect(ctx.destination);
+    master._comp = comp;
+  }
+  function drop() {
+    if (!on) return;
+    const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(1400 + Math.random() * 2400, t); o.frequency.exponentialRampToValueAtTime(500, t + 0.06);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.02 + rainLevel * 0.03, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    o.connect(g); g.connect(master._comp); o.start(t); o.stop(t + 0.1);
+    dropTimer = setTimeout(drop, 60 + Math.random() * (700 - 560 * rainLevel));
+  }
+  function tone(freqs, dur, vol, type = "sine", gap = 0.14) {
+    if (!on) return;
+    const t0 = ctx.currentTime;
+    freqs.forEach((f, i) => {
+      const t = t0 + i * gap, o = ctx.createOscillator(), g = ctx.createGain(), f2 = ctx.createBiquadFilter();
+      o.type = type; o.frequency.value = f; f2.type = "lowpass"; f2.frequency.value = 2400;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(f2); f2.connect(g); g.connect(master._comp); o.start(t); o.stop(t + dur + 0.05);
+    });
+  }
+  return {
+    get on() { return on; },
+    async toggle() {
+      if (!ctx) init();
+      on = !on;
+      if (on) { await ctx.resume(); master.gain.setTargetAtTime(0.9, ctx.currentTime, 0.4); clearTimeout(dropTimer); drop(); }
+      else { master.gain.setTargetAtTime(0, ctx.currentTime, 0.15); clearTimeout(dropTimer); }
+      return on;
+    },
+    levels(rain01, river01) {
+      rainLevel = rain01;
+      if (!ctx || !on) return;
+      rainG.gain.setTargetAtTime(0.012 + rain01 * 0.16, ctx.currentTime, 0.5);
+      riverG.gain.setTargetAtTime(0.05 + river01 * 0.5, ctx.currentTime, 0.8);
+    },
+    warn() { tone([659.25, 523.25], 0.9, 0.08, "triangle"); },
+    shut() { tone([196, 146.83, 98], 2.2, 0.14, "sine", 0.22); },
+    tick() { tone([1318.5], 0.12, 0.03, "sine"); },
+    good() { tone([523.25, 659.25, 783.99], 0.6, 0.06, "triangle", 0.09); },
+  };
+})();
+const sbtn = $("#sound");
+sbtn.addEventListener("click", async () => {
+  const on = await Sound.toggle();
+  sbtn.setAttribute("aria-pressed", String(on));
+  sbtn.setAttribute("aria-label", on ? "Sound: on" : "Sound: off");
+  $(".lbl", sbtn).textContent = on ? "Sound on" : "Sound off";
+  if (on) Sound.good();
+});
 
-function stat(v, l) { return `<div class="stat"><b>${v}</b><span>${l}</span></div>`; }
+/* ---------- season timeline (real river and rain) ---------- */
+const DAYS = SS.river.time, Q = SS.river.q, RAIN = SS.rain, N = DAYS.length;
+const QMAX = Math.max(...Q), RMAX = Math.max(...RAIN);
+const ROADS = SS.roads; // [{id, thr, shut, warn}]
+const idx = (iso) => DAYS.indexOf(iso);
+const EVENTS = [];
+for (const r of ROADS) {
+  EVENTS.push({ i: idx(r.warn), kind: "warn", road: r });
+  EVENTS.push({ i: idx(r.shut), kind: "shut", road: r });
+}
+EVENTS.push({ i: idx("2022-08-08"), kind: "run" });
+EVENTS.sort((a, b) => a.i - b.i);
+const qAt = (t) => { t = Math.max(0, t); const i = Math.min(N - 1, Math.floor(t)), j = Math.min(N - 1, i + 1), f = t - i; return Q[i] * (1 - f) + Q[j] * f; };
+const rainAt = (t) => RAIN[Math.min(N - 1, Math.round(t))];
+let T = REDUCED ? idx("2022-08-08") : 0, playing = !REDUCED, lastI = -1;
 
-function runView(key) {
-  const r = RUNS[key], b = r.run, po = b.purchase_order;
-  const flagged = Object.values(b.roads).filter(x => x.closes_in_days != null);
-  const lines = b.plan.map(l => `<tr><td>${esc(l.kind)}</td><td>${esc(l.source)} → ${esc(l.to)}</td><td class="num">${l.qty}</td>
-      <td class="num">day ${l.deliver_day}</td><td class="num">${l.cost ? naira(l.cost) : "—"}</td><td>${esc(l.why)}</td></tr>`).join("");
-  const held = b.held.map(h => `<tr><td><span class="pill held">HOLD</span></td><td>${esc(h.clinic || h.to)}</td><td colspan="4">${esc(h.reason || h.hold_reason)}</td></tr>`).join("");
-  const mem = key === "memory" ? `<section><h2>What memory changed</h2><div class="scroll"><table>
-      <tr><th>Memory (H-MEM)</th><th class="num">Confidence</th><th>Effect</th></tr>
-      ${b.memory.memories.map(m => `<tr><td>${esc(m.content)}</td><td class="num">${m.confidence.toFixed(2)}</td><td>${b.memory.avoid.includes(m.tags[2]) ? "applied: avoid " + esc(m.tags[2]) : "asked the pharmacist"}</td></tr>`).join("")}
-      </table></div><p class="note">Before the note, the same day ordered ${D.august.purchase_order.qty} courses from ${D.august.purchase_order.supplier} for ${naira(D.august.purchase_order.cost)}. After it: ${po.qty} from ${po.supplier} for ${naira(po.cost)}, still inside the ₦4,000,000 quarterly budget.</p></section>` : "";
-  const events = b.events.map(e => `<tr class="${e.status === "ok" ? "" : "flag"}"><td>${esc(e.timestamp.slice(11, 23))}</td>
-      <td class="agent">${esc(e.agent_name)}</td><td class="mono">${esc(e.action)}</td>
-      <td><span class="pill ${esc(e.status)}">${esc(e.status)}</span></td><td>${esc(e.output_summary)}</td></tr>`).join("");
-  const br = b.briefing;
-  return `
-    <section><p class="story">${r.story}</p>
-      <div class="stats">
-        ${stat(esc(b.status === "ok" ? "Ready" : "Needs review"), "plan status")}
-        ${stat(naira(b.cost), "plan cost")}
-        ${stat(b.plan.length, "plan lines")}
-        ${stat(b.held.length, "on HOLD")}
-        ${stat(flagged.length ? flagged.map(x => `${x.clinic_id} ${x.closes_in_days}d`).join(" · ") : "none", "roads warned")}
-        ${stat(b.retries, "Critic retries")}
-      </div></section>
-    ${mem}
-    <section><h2>The plan the pharmacist sees</h2><div class="scroll"><table>
-      <tr><th>Kind</th><th>Route</th><th class="num">Courses</th><th class="num">Arrives</th><th class="num">Cost</th><th>Why</th></tr>
-      ${lines}${held}</table></div>
-      ${po ? `<p class="note">Purchase order: ${po.qty} courses from ${esc(po.supplier)} at ${naira(po.cost)}, ${po.lead_days}-day lead. ${esc(po.why)}.</p>` : ""}</section>
-    <section><h2>Briefing</h2><div class="briefing"><p>${esc(br.text)}</p>
-      <p class="meta">${br.source === "nemotron" ? "Nemotron via Nightshift · " + esc(br.model) : "Template briefing"} · ${esc(br.reason)}</p></div>
-      ${br.source !== "nemotron" ? `<p class="note">No live Nemotron reply was recorded for this exact plan, so the page shows the fixed template. The same thing happens live if the model is unreachable or writes a number that isn't in the plan.</p>` : ""}</section>
-    <section><h2>Agent trace · ${b.events.length} steps</h2><div class="scroll"><table class="trace">
-      <tr><th>Time</th><th>Agent</th><th>Action</th><th>Status</th><th>Result</th></tr>${events}</table></div>
-      <p class="note mono">${esc(b.trace)} · run ${esc(b.run_id)}</p></section>`;
+const chips = {};
+const roadsEl = $("#roads");
+for (const r of ROADS) {
+  const c = document.createElement("span"); c.className = "chip";
+  roadsEl.insertBefore(c, roadsEl.firstChild); chips[r.id] = c;
+}
+const toast = $("#toast"); let toastTimer = 0;
+function showToast(kind, title, html) {
+  toast.style.bottom = innerWidth < 860 ? ($("#hud .wrap").offsetHeight + 34) + "px" : "";
+  toast.className = "toast on " + kind; toast.innerHTML = `<span class="tt">${title}</span>${html}`;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("on"), 4200);
+}
+function roadState(r, i) { return i >= idx(r.shut) ? "shut" : i >= idx(r.warn) ? "warn" : "ok"; }
+function updateHud(t) {
+  const i = Math.max(0, Math.min(N - 1, Math.floor(t)));
+  $("#hudDate").textContent = dlabel(DAYS[i]);
+  $("#hudQ").textContent = fmt(Math.round(qAt(t)));
+  $("#hudR").textContent = rainAt(t).toFixed(1);
+  const sp = $("#spark"); sp.setAttribute("aria-valuenow", String(i)); sp.setAttribute("aria-valuetext", dlabel(DAYS[i]));
+  for (const r of ROADS) {
+    const s = roadState(r, i), c = chips[r.id];
+    c.className = "chip " + s;
+    c.textContent = (innerWidth < 560 ? `${r.id} · ` : `${NAME[r.id]} (${r.id}) · `) + (s === "shut" ? `road shut ${dlabel(r.shut).slice(0, -5)}` : s === "warn" ? `warned ${dlabel(r.warn).slice(0, -5)}` : `road open`);
+  }
+  if (lastI >= 0 && i > lastI && i - lastI < 6) {
+    for (const e of EVENTS) if (e.i > lastI && e.i <= i) fire(e);
+  }
+  lastI = i;
+  Sound.levels(Math.min(1, rainAt(t) / 18), (qAt(t) - 1000) / (QMAX - 1000));
+}
+function fire(e) {
+  if (e.kind === "run") return showToast("run", "8 Aug · StockSense run", "Unguwar Rimi PHC has <b>10.6 days</b> of medicine; its road may close in <b>12.1</b>. Plan: next-day transfers, <b>52.9 days</b> after.");
+  const r = e.road, q = fmt(Math.round(Q[e.i]));
+  if (e.kind === "warn") { Sound.warn(); return showToast("warn", `${dlabel(r.warn).slice(0, -5)} · first warning`, `The Forecaster flags the road to <b>${NAME[r.id]}</b>: ${r.ahead} days before it closed.`); }
+  Sound.shut(); showToast("shut", `${dlabel(r.shut).slice(0, -5)} · road shut`, `River at <b>${q} m³/s</b> passes ${fmt(r.thr)}. <b>${NAME[r.id]}</b> is cut off.`);
 }
 
-function seasonView() {
-  const s = D.season.results, base = s.naive.stockout_days;
-  const rows = [["stocksense", "StockSense"], ["naive", "Naive: top every clinic up to 4 weeks from the cheapest supplier"],
-    ["no_critic", "StockSense without the Critic"], ["no_river", "StockSense without the river forecast"]];
-  const max = Math.max(...rows.map(([k]) => s[k].stockout_days));
-  return `<section><p class="story">Every day from 4 July to 31 October 2022 against the real river. Each policy plans every 7 days from the stock it would have that day; a delivery waits while its road is under water. StockSense left clinics without medicine on ${base - s.stocksense.stockout_days} fewer clinic-days than the naive rule, and spent ${Math.round(100 * (1 - s.stocksense.spend / s.naive.spend))}% less.</p>
-    <div class="scroll"><table>
-      <tr><th>Policy</th><th class="num">Clinic-days with no medicine</th><th style="width:30%"></th><th class="num">Courses short</th><th class="num">Spend</th></tr>
-      ${rows.map(([k, l]) => `<tr><td>${k === "stocksense" ? "<b>" + l + "</b>" : l}</td><td class="num">${s[k].stockout_days}</td>
-        <td><svg width="100%" height="14" role="img" aria-label="${s[k].stockout_days} clinic-days"><rect x="0" y="2" height="10" rx="2" width="${100 * s[k].stockout_days / max}%" fill="${k === "stocksense" ? "var(--accent)" : "var(--muted)"}" opacity="${k === "stocksense" ? 1 : .55}"></rect></svg></td>
-        <td class="num">${s[k].courses_short}</td><td class="num">${naira(s[k].spend)}</td></tr>`).join("")}
-    </table></div>
-    <p class="note">Stock, use, roads and supplier lateness are synthetic (supplier S3 is 21 days late on 3 orders in 4). The roads to P3 and P5 stay flooded from late August to the end of October, longer than either clinic's store can hold, so no plan avoids all of their stockouts. Switching off held road warnings or supplier memory left the count unchanged on this season, so no gain is claimed for them here.</p></section>`;
+/* sparkline + scrubbing */
+const sc = $("#sparkC"), sx = sc.getContext("2d");
+function drawSpark(t) {
+  const dpr = Math.min(2, devicePixelRatio || 1), w = sc.clientWidth, h = sc.clientHeight;
+  if (sc.width !== Math.round(w * dpr)) { sc.width = Math.round(w * dpr); sc.height = Math.round(h * dpr); }
+  sx.setTransform(dpr, 0, 0, dpr, 0, 0); sx.clearRect(0, 0, w, h);
+  const X = (i) => (i / (N - 1)) * w, Y = (q) => h - 4 - (q / (QMAX * 1.05)) * (h - 10);
+  for (const r of ROADS) {
+    const s = roadState(r, Math.floor(t));
+    sx.strokeStyle = s === "shut" ? "rgba(239,91,79,.55)" : "rgba(242,171,60,.35)"; sx.setLineDash([3, 4]); sx.lineWidth = 1;
+    sx.beginPath(); sx.moveTo(0, Y(r.thr)); sx.lineTo(w, Y(r.thr)); sx.stroke();
+    sx.setLineDash([]); sx.fillStyle = "rgba(154,168,181,.8)"; sx.font = "500 9px 'JetBrains Mono', monospace"; sx.fillText(r.id, w - 18, Y(r.thr) - 3);
+  }
+  for (let i = 0; i < N; i++) { const rh = (RAIN[i] / RMAX) * 14; sx.fillStyle = "rgba(124,196,255,.22)"; sx.fillRect(X(i) - 0.8, 0, 1.6, rh); }
+  const g = sx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(95,183,229,.45)"); g.addColorStop(1, "rgba(95,183,229,0)");
+  sx.beginPath(); sx.moveTo(0, h); for (let i = 0; i < N; i++) sx.lineTo(X(i), Y(Q[i])); sx.lineTo(w, h); sx.closePath(); sx.fillStyle = g; sx.fill();
+  sx.beginPath(); for (let i = 0; i < N; i++) (i ? sx.lineTo : sx.moveTo).call(sx, X(i), Y(Q[i])); sx.strokeStyle = "#5fb7e5"; sx.lineWidth = 1.6; sx.stroke();
+  const cx = X(t); sx.fillStyle = "rgba(255,255,255,.9)"; sx.fillRect(cx - 0.75, 0, 1.5, h);
+  sx.beginPath(); sx.arc(cx, Y(qAt(t)), 4, 0, Math.PI * 2); sx.fill();
+}
+const spark = $("#spark");
+function scrubTo(ev) { const r = spark.getBoundingClientRect(); T = Math.max(0, Math.min(N - 1, ((ev.clientX - r.left) / r.width) * (N - 1))); lastI = -1; setPlaying(false); }
+spark.addEventListener("pointerdown", (e) => { spark.setPointerCapture(e.pointerId); scrubTo(e); spark.onpointermove = scrubTo; });
+spark.addEventListener("pointerup", () => { spark.onpointermove = null; });
+spark.addEventListener("keydown", (e) => {
+  const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 7, PageDown: -7 }[e.key];
+  if (e.key === "Home") T = 0; else if (e.key === "End") T = N - 1; else if (step) T = Math.max(0, Math.min(N - 1, Math.round(T) + step)); else return;
+  e.preventDefault(); lastI = -1; setPlaying(false);
+});
+function setPlaying(p) {
+  playing = p; $("#icPause").style.display = p ? "" : "none"; $("#icPlay").style.display = p ? "none" : "";
+  $("#playBtn").setAttribute("aria-label", p ? "Pause the season replay" : "Play the season replay");
+}
+$("#playBtn").addEventListener("click", () => { if (!playing && T >= N - 1) { T = 0; lastI = -1; } setPlaying(!playing); Sound.tick(); });
+setPlaying(playing);
+
+/* ---------- 3D scene ---------- */
+const hero = $("#hero");
+let scene3d = null;
+try { if (window.THREE) scene3d = build3D(); } catch (err) { console.warn("3D unavailable:", err); }
+if (!scene3d) hero.classList.add("nogl");
+
+function build3D() {
+  const canvas = $("#scene");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+  renderer.setClearColor(0x000000, 0);
+  if (!renderer.getContext()) return null;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.3;
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x1b2a3a, 0.0046);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 600);
+
+  scene.add(new THREE.HemisphereLight(0xb4cde4, 0x3a2e1e, 1.1));
+  const sun = new THREE.DirectionalLight(0xffd6a8, 1.35); sun.position.set(-60, 45, -40); scene.add(sun);
+  const rim = new THREE.DirectionalLight(0x6fa8dc, 0.45); rim.position.set(50, 30, 80); scene.add(rim);
+
+  // value noise
+  const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+  const sm = (t) => t * t * (3 - 2 * t);
+  const vnoise = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = sm(xf), v = sm(yf);
+    return (hash(xi, yi) * (1 - u) + hash(xi + 1, yi) * u) * (1 - v) + (hash(xi, yi + 1) * (1 - u) + hash(xi + 1, yi + 1) * u) * v; };
+  const fbm = (x, y) => { let a = 0, f = 1, amp = 0.5; for (let o = 0; o < 4; o++) { a += amp * vnoise(x * f, y * f); f *= 2.03; amp *= 0.5; } return a - 0.47; };
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+  // water height for a discharge (monotone; road closing levels map to heights)
+  const waterY = (q) => -1.2 + 5.0 * Math.sqrt(Math.max(0, q - 1000) / 13700);
+  const riverZ = (x) => 14 * Math.sin(x * 0.028 + 0.6) + 5 * Math.sin(x * 0.083 + 2.0) + 12;
+
+  // clinics: far side of the river; flood-prone ones sit on mounds in the floodplain
+  const C = {
+    P5: { x: -30, f: 9, mound: 4.6 }, P3: { x: 6, f: 14, mound: 4.6 }, P7: { x: 40, f: 21, mound: 4.8 },
+    P1: { x: 2, f: 66 }, P2: { x: -48, f: 70 }, P4: { x: -20, f: 58 }, P6: { x: 34, f: 72 }, P8: { x: 58, f: 60 },
+  };
+  for (const k in C) { C[k].z = riverZ(C[k].x) - 5 - C[k].f; }
+  function ground(x, z) {
+    const zr = riverZ(x), d = z - zr, ad = Math.abs(d);
+    let h;
+    if (ad < 5) h = -3 + 2.6 * (ad / 5) ** 2;
+    else if (d < 0) { const f = ad - 5; h = -0.4 + f * 0.055 + smooth(38, 72, f) * 15; }
+    else { const f = ad - 5; h = -0.4 + f * 0.08 + smooth(12, 44, f) * 10; }
+    h += fbm(x * 0.045, z * 0.045) * (0.45 + Math.min(1, Math.max(0, ad - 36) / 30) * 7);
+    for (const k in C) {
+      const c = C[k]; if (!c.mound) continue;
+      const r = Math.hypot(x - c.x, z - c.z); h = Math.max(h, c.mound * (1 - smooth(2.2, 7.5, r)) + (fbm(x * 0.3, z * 0.3) * 0.2));
+    }
+    return h;
+  }
+  for (const k in C) C[k].y = ground(C[k].x, C[k].z);
+
+  // terrain
+  const SIZE = 260, SEG = 200;
+  const tg = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG); tg.rotateX(-Math.PI / 2);
+  const pos = tg.attributes.position, cols = new Float32Array(pos.count * 3), col = new THREE.Color();
+  const pal = [[-9, 0x4a3d2c], [0.2, 0x5d5236], [0.9, 0x4f6a30], [2.2, 0x587a34], [4.5, 0x6d7d3d], [8, 0x7c6a42], [13, 0x8a5b3a], [30, 0x9a7a5c]];
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i), y = ground(x, z); pos.setY(i, y);
+    let a = pal[0], b = pal[pal.length - 1];
+    for (let p = 0; p < pal.length - 1; p++) if (y >= pal[p][0] && y < pal[p + 1][0]) { a = pal[p]; b = pal[p + 1]; break; }
+    const t = Math.max(0, Math.min(1, (y - a[0]) / (b[0] - a[0])));
+    col.set(a[1]).lerp(new THREE.Color(b[1]), t);
+    const v = 0.86 + vnoise(x * 0.35, z * 0.35) * 0.28; col.multiplyScalar(v);
+    cols[i * 3] = col.r; cols[i * 3 + 1] = col.g; cols[i * 3 + 2] = col.b;
+  }
+  tg.setAttribute("color", new THREE.BufferAttribute(cols, 3));
+  tg.computeVertexNormals();
+  const terrain = new THREE.Mesh(tg.toNonIndexed(), new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, metalness: 0 }));
+  terrain.geometry.computeVertexNormals();
+  scene.add(terrain);
+
+  // roads: ribbons with embankment skirts; flood-prone roads sit at their closing level
+  const store = C.P1;
+  const roads = {};
+  const ROADMAT = () => new THREE.MeshStandardMaterial({ color: 0xc48a56, roughness: 0.8, emissive: 0x000000, side: THREE.DoubleSide });
+  function makeRoad(id, crest) {
+    const a = C[id], b = store;
+    const mid = new THREE.Vector2((a.x + b.x) / 2 + (a.x - b.x) * 0.25, (a.z + b.z) / 2 + 6);
+    const n = 140, top = [], P = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, it = 1 - t;
+      const x = it * it * a.x + 2 * it * t * mid.x + t * t * b.x, z = it * it * a.z + 2 * it * t * mid.y + t * t * b.z;
+      P.push([x, z]);
+    }
+    const verts = [], idxs = [];
+    for (let i = 0; i <= n; i++) {
+      const [x, z] = P[i], [x2, z2] = P[Math.min(n, i + 1)], [x0, z0] = P[Math.max(0, i - 1)];
+      let tx = x2 - x0, tz = z2 - z0; const L = Math.hypot(tx, tz) || 1; tx /= L; tz /= L;
+      const nx = -tz * 0.55, nz = tx * 0.55;
+      const g = Math.min(ground(x + nx, z + nz), ground(x - nx, z - nz), ground(x, z));
+      const y = Math.max(ground(x, z) + 0.14, crest);
+      verts.push(x + nx, y, z + nz, x - nx, y, z - nz, x + nx * 1.6, g - 0.2, z + nz * 1.6, x - nx * 1.6, g - 0.2, z - nz * 1.6);
+      top.push(new THREE.Vector3(x, y, z));
+      if (i < n) { const o = i * 4, p = o + 4; idxs.push(o, p, o + 1, o + 1, p, p + 1, o, o + 2, p, p, o + 2, p + 2, o + 1, p + 1, o + 3, o + 3, p + 1, p + 3); }
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3)); geo.setIndex(idxs); geo.computeVertexNormals();
+    const mat = ROADMAT(); const mesh = new THREE.Mesh(geo, mat); scene.add(mesh);
+    roads[id] = { mesh, mat, top, crest };
+  }
+  const roadById = Object.fromEntries(ROADS.map((r) => [r.id, r]));
+  for (const id of ["P2", "P4", "P6", "P8"]) makeRoad(id, 4.3);
+  for (const id of ["P5", "P3", "P7"]) makeRoad(id, waterY(roadById[id].thr));
+
+  // clinic markers: small building + light beam
+  const markers = {};
+  const beamGeo = new THREE.CylinderGeometry(0.22, 0.22, 16, 12, 1, true); beamGeo.translate(0, 8, 0);
+  const ringGeo = new THREE.RingGeometry(1.1, 1.45, 40); ringGeo.rotateX(-Math.PI / 2);
+  for (const id in C) {
+    const c = C[id], g = new THREE.Group(); g.position.set(c.x, c.y, c.z);
+    const house = new THREE.Mesh(new THREE.BoxGeometry(id === "P1" ? 3.2 : 1.8, 1.1, id === "P1" ? 2.2 : 1.4), new THREE.MeshStandardMaterial({ color: 0xe8e2d6, roughness: 0.7 }));
+    house.position.y = 0.55;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(id === "P1" ? 2.3 : 1.35, 0.8, 4), new THREE.MeshStandardMaterial({ color: 0x2f6b8f, roughness: 0.6 }));
+    roof.position.y = 1.5; roof.rotation.y = Math.PI / 4;
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0x43c690, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false });
+    const beam = new THREE.Mesh(beamGeo, beamMat);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x43c690, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(ringGeo, ringMat); ring.position.y = 0.08;
+    g.add(house, roof, beam, ring); scene.add(g);
+    markers[id] = { g, beamMat, ringMat, ring };
+  }
+
+  // water
+  const WSEG = 96, wg = new THREE.PlaneGeometry(SIZE, SIZE, WSEG, WSEG); wg.rotateX(-Math.PI / 2);
+  const wpos = wg.attributes.position, wbase = Float32Array.from(wpos.array);
+  const water = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ color: 0x6e5636, roughness: 0.32, metalness: 0.05, transparent: true, opacity: 0.88, polygonOffset: true, polygonOffsetFactor: -2 }));
+  scene.add(water);
+  const sheen = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x9a7a4a, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false }));
+  scene.add(sheen);
+
+  // rain streaks
+  const RN = 2600, rp = new Float32Array(RN * 6), rv = new Float32Array(RN);
+  const spawn = (i, top) => { const x = (Math.random() - 0.5) * 180, z = (Math.random() - 0.5) * 150 - 10, y = top ? 30 + Math.random() * 10 : Math.random() * 40;
+    rp.set([x, y, z, x + 0.25, y + 1.6, z], i * 6); rv[i] = 38 + Math.random() * 20; };
+  for (let i = 0; i < RN; i++) spawn(i, false);
+  const rg = new THREE.BufferGeometry(); rg.setAttribute("position", new THREE.BufferAttribute(rp, 3));
+  const rain = new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0xbcd6ee, transparent: true, opacity: 0.32, depthWrite: false }));
+  scene.add(rain);
+
+  // labels
+  const labels = $("#labels"), pins = {};
+  for (const id in C) {
+    const el = document.createElement("div");
+    el.className = "pin" + (["P5", "P3", "P7"].includes(id) ? "" : " minor");
+    el.innerHTML = `${NAME[id]}<small>${id}${id === "P1" ? " · LGA store" : ["P5", "P3", "P7"].includes(id) ? " · road closes at " + fmt(roadById[id].thr) + " m³/s" : " · road not flood-prone"}</small>`;
+    labels.appendChild(el); pins[id] = el;
+  }
+
+  const OK = new THREE.Color(0x43c690), WARN = new THREE.Color(0xf2ab3c), SHUT = new THREE.Color(0xef5b4f), ROAD = new THREE.Color(0xc48a56);
+  let w = 1, h = 1, mx = 0, my = 0, visible = true;
+  function resize() {
+    w = hero.clientWidth; h = hero.clientHeight; renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.fov = w < 700 ? 58 : 42;
+    // on wide screens draw the valley right of the headline
+    if (w >= 860) camera.setViewOffset(w, h, -w * 0.2, 0, w, h); else camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+  }
+  addEventListener("resize", resize); resize();
+  hero.addEventListener("pointermove", (e) => { mx = e.clientX / w - 0.5; my = e.clientY / h - 0.5; });
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(hero);
+
+  const v3 = new THREE.Vector3();
+  let copyRight = 0, copyTop = 0, copyBottom = 0;
+  const measureCopy = () => { const hr = hero.getBoundingClientRect(), r = [...document.querySelectorAll(".hero-copy h1, .hero-copy .lead, .hero-copy .cta > *")].map((e) => { const g = document.createRange(); g.selectNodeContents(e); return g.getBoundingClientRect(); });
+    copyRight = Math.max(...r.map((b) => b.right)) - hr.left + 40; copyTop = Math.min(...r.map((b) => b.top)) - hr.top - 20; copyBottom = Math.max(...r.map((b) => b.bottom)) - hr.top + 40; };
+  measureCopy(); addEventListener("resize", measureCopy); document.fonts && document.fonts.ready.then(measureCopy);
+  function frame(time, dt, t) {
+    const q = qAt(t), wy = waterY(q), i = Math.min(N - 1, Math.floor(t));
+    water.position.y = wy; sheen.position.y = wy + 0.02;
+    const k = time * 0.001;
+    for (let j = 0; j < wpos.count; j++) {
+      const x = wbase[j * 3], z = wbase[j * 3 + 2];
+      wpos.array[j * 3 + 1] = (REDUCED ? 0 : 0.07 * Math.sin(x * 0.31 + k * 1.3) + 0.05 * Math.cos(z * 0.27 + k * 0.9) + 0.03 * Math.sin((x + z) * 0.7 + k * 2.1));
+    }
+    wpos.needsUpdate = true; wg.computeVertexNormals();
+
+    // rain amount follows the real daily rainfall
+    const rn = Math.round(RN * Math.min(1, 0.06 + rainAt(t) / 16));
+    rg.setDrawRange(0, REDUCED ? 0 : rn * 2);
+    for (let j = 0; j < rn; j++) {
+      const o = j * 6, dy = rv[j] * dt;
+      rp[o + 1] -= dy; rp[o + 4] -= dy; rp[o] -= dy * 0.15; rp[o + 3] -= dy * 0.15;
+      if (rp[o + 1] < wy - 1) spawn(j, true);
+    }
+    rg.attributes.position.needsUpdate = true;
+
+    for (const r of ROADS) {
+      const s = roadState(r, i), m = markers[r.id], rd = roads[r.id];
+      const c = s === "shut" ? SHUT : s === "warn" ? WARN : OK, pulse = s === "ok" ? 0 : 0.5 + 0.5 * Math.sin(k * (s === "shut" ? 5 : 3));
+      m.beamMat.color.copy(c); m.ringMat.color.copy(c); m.beamMat.opacity = 0.25 + pulse * 0.3;
+      m.ring.scale.setScalar(1 + pulse * 0.6);
+      rd.mat.color.copy(ROAD).lerp(c, s === "ok" ? 0 : 0.75); rd.mat.emissive.copy(c).multiplyScalar(s === "ok" ? 0 : 0.18 + pulse * 0.25);
+      pins[r.id].className = "pin " + s;
+    }
+
+    // camera: slow drift and a little parallax
+    const ang = REDUCED ? 0 : Math.sin(k * 0.06) * 0.22;
+    const R = w < 700 ? 150 : 118, ex = Math.sin(ang) * R + mx * 10, ez = Math.cos(ang) * R + 18;
+    camera.position.set(ex + (w < 700 ? 0 : 22), 54 - my * 6, ez);
+    camera.lookAt(w < 700 ? 6 : 16, 1.5, -30);
+
+    renderer.render(scene, camera);
+    for (const id in C) {
+      const c = C[id]; v3.set(c.x, c.y + (id === "P1" ? 4.5 : 3.6), c.z).project(camera);
+      const el = pins[id], sx = (v3.x * 0.5 + 0.5) * w, sy = (-v3.y * 0.5 + 0.5) * h;
+      el.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, -100%)`;
+      const underCopy = w >= 860 ? sx < copyRight && sy > copyTop && sy < copyBottom : sy < copyBottom || (C[id].mound === undefined && id !== "P1");
+      el.style.opacity = v3.z > 1 || sx < 20 || sx > w - 20 || underCopy ? 0 : "";
+    }
+  }
+  return { frame, get visible() { return visible; } };
 }
 
-const picker = document.getElementById("picker"), view = document.getElementById("view");
-function show(key) {
-  for (const b of picker.children) b.setAttribute("aria-selected", b.dataset.key === key);
-  view.innerHTML = key === "season" ? seasonView() : runView(key);
-  try { localStorage.setItem("run", key); } catch {}
+let last = performance.now();
+function tick(now) {
+  requestAnimationFrame(tick);
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
+  if (playing) { T += dt * 3.6; if (T >= N - 1) { T = N - 1; setPlaying(false); setTimeout(() => { if (!playing && T >= N - 1) { T = 0; lastI = -1; setPlaying(true); } }, 3500); } }
+  updateHud(T); drawSpark(T);
+  if (scene3d && scene3d.visible && !document.hidden) scene3d.frame(now, dt, T);
 }
-for (const [k, r] of Object.entries(RUNS)) {
-  const b = document.createElement("button");
-  b.type = "button"; b.role = "tab"; b.id = "tab-" + k; b.dataset.key = k;
-  b.innerHTML = `${r.label}<small>${r.sub}</small>`;
-  b.onclick = () => show(k);
-  picker.append(b);
-}
-let start = location.hash.slice(1);
-if (!RUNS[start]) { try { start = localStorage.getItem("run"); } catch {} }
-show(RUNS[start] ? start : "august");
+requestAnimationFrame(tick);
 
-document.getElementById("copy").onclick = e => {
-  navigator.clipboard.writeText("python3 prove.py").then(() => e.target.textContent = "Copied", () => {
-    const r = document.createRange(); r.selectNodeContents(document.getElementById("cmd"));
-    getSelection().removeAllRanges(); getSelection().addRange(r);
+/* ---------- nav ---------- */
+const nav = $("#nav");
+addEventListener("scroll", () => nav.classList.toggle("solid", scrollY > 40), { passive: true });
+
+/* ---------- reveal and counters ---------- */
+const io = new IntersectionObserver((es) => {
+  for (const e of es) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); onReveal(e.target); }
+}, { threshold: 0.18 });
+document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+function countUp(el) {
+  const to = Number(el.dataset.count); if (REDUCED) { el.textContent = fmt(to); return; }
+  const t0 = performance.now(), dur = 1400;
+  const step = (n) => { const p = Math.min(1, (n - t0) / dur), e = 1 - (1 - p) ** 3; el.textContent = fmt(Math.round(to * e)); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function onReveal(el) {
+  el.querySelectorAll("[data-count]").forEach(countUp);
+  if (el.matches("[data-race]")) el.querySelectorAll(".fill").forEach((f) => { f.style.width = Math.min(100, (Number(f.dataset.w) / 60) * 100) + "%"; });
+  if (el.id === "flow") runFlow();
+  if (el.querySelector && el.querySelector("#abl")) el.querySelectorAll(".t i").forEach((i) => { i.style.width = i.dataset.w; });
+  if (el.querySelector && el.querySelector("#term")) runProof();
+}
+
+/* ---------- agents flow + recorded trace ---------- */
+const AG = [
+  ["DataAgent", "Reads clinic_risk, the USL join, and the river series from Zetaris.", "Zetaris"],
+  ["Forecaster", "Using readings up to the run date only, flags roads that could close within 30 days.", "H-MEM"],
+  ["Sentinels", "One per clinic: below safety stock, missing reading, road closing.", ""],
+  ["Memory Keeper", "Reads the pharmacist's supplier notes from H-MEM before planning.", "H-MEM"],
+  ["Planner", "Drafts transfers from clinics above their keep level, then the cheapest whole purchase order.", ""],
+  ["Critic", "Checks donor safety stock, capacity and budget. A flagged road takes next-day transfers only.", "≤ 2 retries"],
+  ["Evaluator", "Re-queries Zetaris for every number a line rests on. Unverifiable lines go on HOLD.", "Zetaris"],
+  ["Coordinator", "Writes the briefing. Every number in it must be in the plan, or a template is used.", "Nemotron"],
+];
+const flow = $("#flow");
+AG.forEach(([n, d, b], i) => {
+  const el = document.createElement("div"); el.className = "node" + (i === 7 ? " model" : "");
+  el.innerHTML = `<span class="n">0${i + 1}</span>${b ? `<span class="badge">${b}</span>` : ""}<h3>${n}</h3><p>${d}</p>`; flow.appendChild(el);
+});
+const AGENT_INDEX = { DataAgent: 0, Forecaster: 1, Sentinel: 2, Sentinels: 2, MemoryKeeper: 3, "Memory Keeper": 3, Planner: 4, Critic: 5, Evaluator: 6, Coordinator: 7 };
+const cons = $("#console");
+let flowRunning = false;
+function runFlow() {
+  if (flowRunning) return; flowRunning = true;
+  const nodes = [...flow.children], arc = $("#arc"), ev = SS.trace;
+  let k = 0;
+  const step = () => {
+    if (k >= ev.length) { setTimeout(() => { nodes.forEach((n) => n.className = n.className.replace(/ (on|done|reject)/g, "")); cons.innerHTML = ""; arc.classList.remove("on"); k = 0; step(); }, 4000); return; }
+    const e = ev[k++], ai = AGENT_INDEX[e.agent] ?? AGENT_INDEX[e.agent.replace(/[^A-Za-z]/g, "")];
+    nodes.forEach((n, j) => { n.classList.remove("on"); if (j < ai) n.classList.add("done"); });
+    if (ai != null) { nodes[ai].classList.add("on"); nodes[ai].classList.remove("reject"); }
+    const bad = e.status && !/^(ok|done|success)$/i.test(e.status);
+    if (ai === 5 && bad) { nodes[5].classList.add("reject"); arc.classList.add("on"); }
+    const ln = document.createElement("div"); ln.className = "ln";
+    ln.innerHTML = `<b>${e.agent}</b> ${esc(e.action)} <span class="${bad ? "bad" : "ok"}">${esc(e.status || "")}</span> ${e.model ? `<span class="m">${esc(e.model)}</span> ` : ""}${esc(e.out)}`;
+    cons.appendChild(ln); while (cons.children.length > 11) cons.removeChild(cons.firstChild);
+    setTimeout(step, REDUCED ? 60 : 620);
+  };
+  step();
+}
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+
+/* ---------- try it: the recorded 8 August plan ---------- */
+const PLAN = SS.plan, AFTER = SS.after;
+const linesEl = $("#lines"), state = PLAN.map(() => ({ d: null, qty: null }));
+let memo = null; // null | "avoid" | "contradicted"
+function lineText(p, i) {
+  const s = state[i], qty = s.qty ?? p.qty, src = memo === "avoid" && p.kind === "purchase" ? "S3" : p.source;
+  if (p.kind === "transfer") return `Move <b>${qty}</b> courses from ${NAME[p.source]} (${p.source}) to <b>${NAME[p.to]}</b> (${p.to}), arriving day ${p.deliver_day} · ${naira(p.cost)} transport`;
+  return `Buy <b>${qty}</b> courses from supplier <b>${src}</b> for ${NAME[p.to]} (${p.to}), arriving day ${p.deliver_day}`;
+}
+function renderLines() {
+  linesEl.innerHTML = "";
+  PLAN.forEach((p, i) => {
+    const s = state[i], el = document.createElement("div");
+    el.className = "line" + (s.d === "approve" ? " approved" : s.d === "reject" ? " rejected" : "") + (s.qty != null ? " edited" : "");
+    const why = memo === "avoid" && p.kind === "purchase" ? "from the S3 order, delivered via the LGA store" : p.why;
+    el.innerHTML = `<div><div class="what">${lineText(p, i)}</div><div class="why">${esc(why)}</div><div class="flag">edited: not re-checked by the Critic; plan again before acting</div></div>
+      <div class="acts"><button type="button" class="ap" aria-pressed="${s.d === "approve"}">Approve</button><button type="button" class="ed">Edit</button><button type="button" class="rj" aria-pressed="${s.d === "reject"}">Reject</button></div>`;
+    $(".ap", el).onclick = () => { s.d = s.d === "approve" ? null : "approve"; Sound.tick(); renderLines(); };
+    $(".rj", el).onclick = () => { s.d = s.d === "reject" ? null : "reject"; Sound.tick(); renderLines(); };
+    $(".ed", el).onclick = () => {
+      const what = $(".what", el), b = $("b", what), inp = document.createElement("input");
+      inp.type = "number"; inp.min = "0"; inp.max = "2000"; inp.className = "qty"; inp.value = s.qty ?? p.qty; inp.setAttribute("aria-label", "Courses");
+      b.replaceWith(inp); inp.focus(); inp.select();
+      const done = () => { const v = Math.max(0, Math.min(2000, Math.round(Number(inp.value)))); s.qty = Number.isFinite(v) && v !== p.qty ? v : null; renderLines(); };
+      inp.onblur = done; inp.onkeydown = (e) => { if (e.key === "Enter") inp.blur(); if (e.key === "Escape") { inp.value = s.qty ?? p.qty; inp.blur(); } };
+    };
+    linesEl.appendChild(el);
   });
-};
+  const a = state.filter((s) => s.d === "approve").length, r = state.filter((s) => s.d === "reject").length, e = state.filter((s) => s.qty != null).length;
+  $("#tA").textContent = a; $("#tR").textContent = r; $("#tE").textContent = e;
+  const left = PLAN.length - a - r;
+  $("#decided").innerHTML = left ? `${left} of ${PLAN.length} lines still need your decision.` : `<b>All ${PLAN.length} lines decided.</b> Nothing is sent: you place the order and move the stock.` + (e ? " Edited lines were not re-checked by the Critic; plan again before acting." : "");
+  renderPO();
+}
+function renderPO() {
+  const base = SS.po, nu = AFTER.po;
+  if (memo === "avoid") $("#po").innerHTML = `<span class="was">${base.qty} from ${base.supplier}, ${naira(base.cost)}</span><b>${nu.qty} courses from ${nu.supplier}</b>, ${naira(nu.cost)}, ${nu.lead_days}-day lead.<br>Plan total ${naira(AFTER.cost)}, inside the ${naira(SS.budget)} budget.`;
+  else $("#po").innerHTML = `<b>${base.qty} courses from ${base.supplier}</b>, ${naira(base.cost)}, ${base.lead_days}-day lead.<br><span style="color:var(--muted)">${esc(base.why)}. Plan total ${naira(SS.cost)}.</span>`;
+}
+const SUP = /\b(S1|S2|S3)\b/i, NEG = /\b(late|avoid|don'?t|do not)\b/i, POS = /\b(fine|reliable|back)\b/i;
+function meter(v) { return `<div class="conf">confidence <div class="meter"><i style="width:${v * 100}%"></i><u title="0.70 gate"></u></div> ${v.toFixed(2)}</div>`; }
+$("#memform").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const txt = $("#note").value.trim(), out = $("#memout"); if (!txt) return;
+  const sup = (txt.match(SUP) || [])[1]?.toUpperCase();
+  if (sup === "S2" && POS.test(txt) && !NEG.test(txt)) {
+    if (memo !== "avoid") { out.innerHTML = "There is no stored note about S2 to correct, so the plan is unchanged."; return; }
+    memo = "contradicted"; Sound.warn();
+    out.innerHTML = `This contradicts the stored note, so its confidence drops from <b>0.80 to 0.60</b>. Below the 0.70 gate it is <b>escalated, not applied</b>: the order goes back to S2 and you are asked to confirm.${meter(0.6)}`;
+  } else if (sup === "S2" && NEG.test(txt)) {
+    memo = "avoid"; Sound.good();
+    out.innerHTML = `Remembered in H-MEM: <b>“Avoid supplier S2: ${esc(txt)}”</b>, at confidence 0.80, above the 0.70 gate. The next plan buys from <b>S3</b>.${meter(0.8)}`;
+  } else if (sup) {
+    out.innerHTML = `Recorded runs exist only for notes about S2. In the live app, any note naming a known supplier with a word like “late”, “avoid” or “fine” is remembered.`;
+  } else {
+    out.innerHTML = `Not stored. The Memory Keeper keeps a note only if it names a known supplier (S1, S2 or S3) with a word like “late”, “avoid”, “don't”, “fine”, “reliable” or “back”.`;
+  }
+  renderLines();
+});
+document.querySelectorAll(".suggest button").forEach((b) => b.addEventListener("click", () => { $("#note").value = b.dataset.note; $("#memform").requestSubmit(); }));
+$("#brief").innerHTML = `${esc(SS.briefing.text)}<span class="model">${esc(SS.briefing.model)} · ${esc(SS.briefing.reason)}</span>`;
+renderLines();
+
+/* ---------- results: take one part away ---------- */
+const ABL = SS.ablation, amax = Math.max(...ABL.map((a) => a.days));
+$("#abl").innerHTML = ABL.map((a) => `<div class="row${a.us ? " us" : ""}"><div>${a.label}<small>${naira(a.spend)} spent</small></div><div class="t"><i data-w="${(a.days / amax) * 100}%"></i></div><b>${a.days}</b></div>`).join("") +
+  `<p class="cap" style="margin-top:6px">Clinic-days without medicine over the 2022 season. From <span class="mono">eval/season_2022.json</span>.</p>`;
+
+/* ---------- proof terminal ---------- */
+let proofRan = false;
+function runProof() {
+  if (proofRan) return; proofRan = true;
+  const term = $("#term"), lines = SS.prove; let k = 0, pass = 0;
+  term.innerHTML = `<div><span class="cmd">$ python3 prove.py</span></div>`;
+  const step = () => {
+    if (k < lines.length) {
+      const l = lines[k++], d = document.createElement("div");
+      if (l.startsWith("PASS")) { pass++; d.innerHTML = `<span class="p">PASS</span>${esc(l.slice(4).trim())}`; $("#pc").textContent = pass; }
+      else d.innerHTML = l ? `<span class="sum">${esc(l)}</span>` : "&nbsp;";
+      term.appendChild(d); while (term.children.length > 17) term.removeChild(term.children[1]);
+      setTimeout(step, REDUCED ? 0 : 150 + Math.random() * 120);
+    } else { const c = document.createElement("div"); c.innerHTML = `<span class="cmd">$ </span><span class="caret"></span>`; term.appendChild(c); }
+  };
+  step();
+}
+
+/* ---------- video: loads YouTube only when asked ---------- */
+$("#playVideo").addEventListener("click", () => {
+  const f = document.createElement("iframe");
+  f.src = "https://www.youtube-nocookie.com/embed/4g-uzi6Ylp8?autoplay=1&rel=0";
+  f.title = "StockSense: Before the Rain, demo video"; f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; f.allowFullscreen = true;
+  $("#video").replaceChildren(f);
+});
+
+/* ---------- cards: pointer glow and tilt ---------- */
+document.querySelectorAll(".card").forEach((c) => {
+  c.addEventListener("pointermove", (e) => {
+    const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    c.style.setProperty("--mx", x * 100 + "%"); c.style.setProperty("--my", y * 100 + "%");
+    if (!REDUCED) c.style.transform = `perspective(900px) rotateX(${(0.5 - y) * 5}deg) rotateY(${(x - 0.5) * 6}deg)`;
+  });
+  c.addEventListener("pointerleave", () => { c.style.transform = ""; });
+});
+})();
 </script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 
 [![ci](https://github.com/Osiyomeoh/stocksense/actions/workflows/ci.yml/badge.svg)](https://github.com/Osiyomeoh/stocksense/actions/workflows/ci.yml)
 
-**[▶ Demo video](https://youtu.be/4g-uzi6Ylp8)** · **[Watch recorded runs, no install](https://osiyomeoh.github.io/stocksense/)** · **[Deck (PDF)](https://osiyomeoh.github.io/stocksense/deck.pdf)** · `python3 prove.py` checks every number below in about 10 s, no keys
+**[▶ Demo video](https://youtu.be/4g-uzi6Ylp8)** · **[Website](https://osiyomeoh.github.io/stocksense/)** · **[Watch recorded runs, no install](https://osiyomeoh.github.io/stocksense/replay.html)** · **[Deck (PDF)](https://osiyomeoh.github.io/stocksense/deck.pdf)** · `python3 prove.py` checks every number below in about 10 s, no keys
 
 **Replayed over the real 2022 rainy season (river real, clinics synthetic): 73 clinic-days without medicine against 93 for a naive reorder rule, at 26% less spend (₦18,279,200 against ₦24,541,000).** See [Season replay](#does-it-keep-medicine-on-the-shelf-a-whole-season-replay).
 
