@@ -130,6 +130,9 @@ def season_replay() -> None:
           (ours["stockout_days"], ours["courses_short"], ours["spend"]), (73, 498, 18279200))
     claim("season: 20 fewer clinic-days, 26% less spend", "20 fewer clinic-days without medicine than the naive rule, at 26% less spend",
           (naive["stockout_days"] - ours["stockout_days"], round(100 * (1 - ours["spend"] / naive["spend"]))), (20, 26))
+    ui = (config.ROOT / "app" / "ui" / "index.html").read_text()
+    claim("UI header states the same season result", None,
+          all(s in ui for s in ("<b>20 fewer clinic-days without medicine</b>", "<b>26% less spend</b>")), True)
 
 
 def main() -> int:

@@ -6,112 +6,398 @@
 <title>StockSense</title>
 <style>
 :root {
-  --bg: #f7f6f2; --panel: #ffffff; --ink: #1d232b; --muted: #5d6874; --line: #dcdcd4;
-  --ok: #1f7a4d; --warn: #a15c00; --bad: #b3261e; --accent: #1f5f8b; --chip: #eef1f4;
+  --bg: #f4f3ee; --panel: #ffffff; --ink: #1d232b; --muted: #5d6874; --line: #dcdcd4; --track: #ecebe4;
+  --ok: #1f7a4d; --warn: #a15c00; --bad: #b3261e; --accent: #1f5f8b; --accent-soft: #9cc3df; --chip: #eef1f4;
+  --river: #2f6fa3;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #14181d; --panel: #1c2128; --ink: #e6e9ec; --muted: #9aa5b1; --line: #313842;
-    --ok: #5cc28f; --warn: #e3a64f; --bad: #f08a80; --accent: #79b4e0; --chip: #262d36;
+    --bg: #12161b; --panel: #1b2027; --ink: #e6e9ec; --muted: #9aa5b1; --line: #313842; --track: #252c35;
+    --ok: #5cc28f; --warn: #e3a64f; --bad: #f08a80; --accent: #79b4e0; --accent-soft: #3a6a8f; --chip: #262d36;
+    --river: #79b4e0;
   }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
-h1 { font-size: 22px; margin: 0 0 4px; }
-h2 { font-size: 15px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-.sub { color: var(--muted); margin: 0 0 16px; }
-.disclaimer { border-left: 3px solid var(--warn); padding: 6px 10px; background: var(--panel); margin: 0 0 18px; font-size: 14px; }
+main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 96px; }
+h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -.01em; }
+
+/* header: the 2022 Kogi flood from space */
+.hero { position: relative; color: #fff; background: #0b1820 url("/img/kogi-flood-2022.jpg") center / cover; }
+.hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,15,21,.94) 0%, rgba(7,15,21,.78) 48%, rgba(7,15,21,.3) 100%); }
+.hero-in { position: relative; max-width: 1080px; margin: 0 auto; padding: 56px 16px 64px; }
+.eyebrow { margin: 0 0 12px; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #9cc3df; }
+.hero h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.05; letter-spacing: -.02em; margin: 0 0 14px; max-width: 15ch; }
+.hero .lead { font-size: 18px; line-height: 1.5; max-width: 46ch; margin: 0 0 24px; color: rgba(255,255,255,.88); }
+.hero form { margin: 0; }
+.hero label, .hero #msg { color: rgba(255,255,255,.78); }
+.hero button { background: #fff; color: #0b1820; border-color: #fff; font-weight: 600; padding: 8px 22px; }
+.proof { margin: 22px 0 0; max-width: 62ch; font-size: 14px; color: rgba(255,255,255,.78); }
+.proof b { color: #fff; }
+.credit { position: absolute; right: 16px; bottom: 10px; margin: 0; font-size: 11px; color: rgba(255,255,255,.66); }
+.credit a, .proof a { color: inherit; }
+
+/* who this is for */
+.ppl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.ppl figure { margin: 0; }
+.ppl img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; display: block; background: var(--track); }
+.ppl figcaption { font-size: 13px; margin-top: 8px; }
+.ppl figcaption span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.ppl a { color: inherit; }
+@media (max-width: 640px) { .ppl { grid-template-columns: 1fr; } .hero-in { padding: 36px 16px 52px; } }
+h2 { font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+h2 .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.sub { color: var(--muted); margin: 0 0 14px; font-size: 16px; }
+.disclaimer { border-left: 3px solid var(--warn); padding: 6px 10px; background: var(--panel); margin: 0 0 18px; font-size: 13px; color: var(--muted); }
+.disclaimer b { color: var(--ink); }
 form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
-select, button { font: inherit; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+select, button, input { font: inherit; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
 button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+button.ghost { background: var(--panel); color: var(--ink); border-color: var(--line); }
 button:disabled { opacity: .6; cursor: wait; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 16px; overflow-x: auto; }
-.status { font-weight: 600; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 10px; background: var(--chip); font-size: 12px; margin: 1px 2px 1px 0; white-space: nowrap; }
+.chip.bad { color: var(--bad); } .chip.warn { color: var(--warn); } .chip.ok { color: var(--ok); }
+
+/* verdict */
+.verdict { border-left: 4px solid var(--accent); }
+.verdict.needs_review { border-left-color: var(--warn); }
+.verdict p { margin: 0; font-size: 18px; line-height: 1.5; }
+.verdict p + p { margin-top: 6px; font-size: 15px; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 14px; }
+.stat b { display: block; font-size: 22px; }
+.stat span { color: var(--muted); font-size: 13px; }
 .status.ok { color: var(--ok); } .status.needs_review { color: var(--warn); } .status.error { color: var(--bad); }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+
+/* agent strip */
+.agents { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.agent { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; background: var(--bg); }
+.agent b { display: block; font-size: 13px; }
+.agent span { color: var(--muted); font-size: 12px; }
+.agent.rejected, .agent.hold { border-color: var(--warn); }
+.agent.fallback, .agent.escalated { border-style: dashed; }
+.arrow { color: var(--muted); }
+
+/* race */
+.race { display: grid; grid-template-columns: minmax(130px, 190px) 1fr minmax(150px, 230px); gap: 6px 14px; align-items: center; }
+.race .head { font-size: 12px; color: var(--muted); }
+.race .name b { display: block; font-size: 14px; }
+.race .name span { font-size: 12px; color: var(--muted); }
+.lane { position: relative; height: 34px; }
+.bar { position: absolute; left: 0; height: 11px; border-radius: 3px; }
+.bar.now { top: 4px; background: var(--ink); opacity: .75; }
+.bar.now.short { background: var(--bad); opacity: 1; }
+.bar.after { top: 19px; background: var(--accent-soft); }
+.bar.after.good { background: var(--ok); opacity: .75; }
+.lane .bg { position: absolute; inset: 4px 0; background: var(--track); border-radius: 3px; height: 26px; }
+.mark { position: absolute; top: 0; bottom: 0; width: 0; }
+.mark.road { border-left: 2px solid var(--bad); }
+.mark.road::after { content: "⛆"; position: absolute; top: -3px; left: 3px; font-size: 11px; color: var(--bad); }
+.mark.safety { border-left: 1px dashed var(--muted); }
+.mark.deliver { top: 17px; bottom: auto; width: 8px; height: 8px; margin-left: -4px; margin-top: 2px; border-radius: 50%; background: var(--accent); }
+.verdict-cell { font-size: 13px; }
+.verdict-cell b { display: block; font-size: 13px; }
+.axis { position: relative; height: 16px; font-size: 11px; color: var(--muted); }
+.axis span { position: absolute; transform: translateX(-50%); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.legend i { display: inline-block; width: 18px; height: 8px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+@media (max-width: 640px) {
+  .race { grid-template-columns: 1fr; }
+  .race .head { display: none; }
+  .race .verdict-cell { margin-bottom: 10px; }
+}
+
+/* river */
+svg.river { width: 100%; height: auto; display: block; }
+svg.river text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+svg.river .flow { fill: none; stroke: var(--river); stroke-width: 2.2; }
+svg.river .proj { fill: none; stroke: var(--river); stroke-width: 1.6; stroke-dasharray: 5 4; opacity: .8; }
+svg.river .thr { stroke: var(--bad); stroke-width: 1; stroke-dasharray: 3 3; }
+svg.river .thr-label { fill: var(--bad); }
+svg.river .grid { stroke: var(--line); stroke-width: 1; }
+svg.river .hit { fill: var(--bad); }
+
+/* plan cards */
+.cards { display: grid; gap: 10px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: center; }
+.card .what { font-size: 15px; }
+.card .what b { font-variant-numeric: tabular-nums; }
+.card .why { grid-column: 1; font-size: 13px; color: var(--muted); }
+.card .acts { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 6px; }
+.card .acts button { padding: 5px 10px; font-size: 13px; }
+.card.approved { border-color: var(--ok); box-shadow: inset 4px 0 0 var(--ok); }
+.card.rejected { opacity: .55; box-shadow: inset 4px 0 0 var(--bad); }
+.card.edited { box-shadow: inset 4px 0 0 var(--warn); }
+.card input { width: 80px; padding: 3px 6px; }
+@media (max-width: 640px) { .card { grid-template-columns: 1fr; } .card .acts { grid-row: auto; grid-column: 1; } }
+.po { margin-top: 12px; font-size: 14px; }
+.decisions { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); padding: 10px 16px; font-size: 14px; display: none; }
+.decisions div { max-width: 1080px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; }
-td.num { text-align: right; font-variant-numeric: tabular-nums; }
-.chip { display: inline-block; padding: 1px 7px; border-radius: 10px; background: var(--chip); font-size: 12px; margin: 1px 2px 1px 0; }
-.chip.bad { color: var(--bad); } .chip.warn { color: var(--warn); }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
-.stat b { display: block; font-size: 20px; }
-.stat span { color: var(--muted); font-size: 13px; }
-.muted { color: var(--muted); }
-h2 .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
-code { font-size: 13px; }
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+.briefing { font-size: 15px; line-height: 1.6; margin: 0; }
 </style>
 </head>
 <body>
+<header class="hero">
+  <div class="hero-in">
+    <p class="eyebrow">Malaria medicine · flood roads · Nigeria</p>
+    <h1>StockSense: Before the Rain</h1>
+    <p class="lead">Which clinics will be cut off by floods before their malaria medicine runs out, and what should move or be bought today?</p>
+    <form id="f">
+      <label for="as_of">Snapshot</label>
+      <select id="as_of">
+        <option value="2022-07-04">2022-07-04 (river low)</option>
+        <option value="2022-08-08" selected>2022-08-08 (river rising)</option>
+      </select>
+      <button id="go" type="submit">Plan</button>
+      <span id="msg"></span>
+    </form>
+    <p class="proof">Replayed over the real 2022 river, StockSense left <b>20 fewer clinic-days without medicine</b> than a simple top-up rule, at <b>26% less spend</b>. <a href="https://github.com/Osiyomeoh/stocksense#does-it-keep-medicine-on-the-shelf-a-whole-season-replay">How we measured it</a></p>
+  </div>
+  <p class="credit">Flooding in Kogi State, 14 Oct 2022, from Sentinel-2. <a href="https://commons.wikimedia.org/wiki/File:Disastrous_floods_affect_Nigeria.jpg">Contains modified Copernicus Sentinel data 2022</a></p>
+</header>
 <main>
-  <h1>StockSense: Before the Rain</h1>
-  <p class="sub">Which clinics will be cut off by floods before their malaria medicine runs out, and what should move or be bought today?</p>
-  <p class="disclaimer">Not a clinical tool. StockSense drafts a plan; a pharmacist approves every action. Stock, roads and clinics are SYNTHETIC; river and rain are real 2022 data. <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> (CC BY 4.0); river discharge from GloFAS, Copernicus Emergency Management Service.</p>
-
-  <form id="f">
-    <label for="as_of">Snapshot</label>
-    <select id="as_of">
-      <option value="2022-07-04">2022-07-04 (river low)</option>
-      <option value="2022-08-08" selected>2022-08-08 (river rising)</option>
-    </select>
-    <button id="go" type="submit">Plan</button>
-    <span id="msg" class="muted"></span>
-  </form>
+  <section class="panel" aria-label="Who this is for">
+    <h2>Who it is for, and what it plans around <span class="muted">real photos, credited below each; these people are not StockSense users, and the clinics in this demo are synthetic</span></h2>
+    <div class="ppl">
+      <figure><img src="/img/malaria-workers-kebbi.jpg" alt="Three community malaria workers lead a session for a group of women" loading="lazy">
+        <figcaption>Community malaria workers lead a session for women, Kebbi State, June 2015.
+          <span><a href="https://commons.wikimedia.org/wiki/File:Women_in_Kebbi_State-Nigeria_June_2015_(18863735316).jpg">Badung Samuel Yohanna, CDC / President's Malaria Initiative</a> · public domain</span></figcaption></figure>
+      <figure><img src="/img/health-workers-enugu.jpg" alt="Health workers seated at desks in a community health post" loading="lazy">
+        <figcaption>Health workers in Eziama, Enugu State, 2021.
+          <span><a href="https://commons.wikimedia.org/wiki/File:Eziama_Health_Workers.jpg">Amechi Idodo culture</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a></span></figcaption></figure>
+      <figure><img src="/img/lokoja-flood-damage.jpg" alt="Homes and ground eroded by flood water, people sitting outside" loading="lazy">
+        <figcaption>A settlement eroded by flooding in Lokoja, Kogi State, September 2021.
+          <span><a href="https://commons.wikimedia.org/wiki/File:Settlement_eroded.jpg">Sani Maikatanga</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a></span></figcaption></figure>
+    </div>
+  </section>
+  <p class="disclaimer"><b>Not a clinical tool.</b> StockSense drafts a plan; a pharmacist approves every action. Stock, roads and clinics are SYNTHETIC; river and rain are real 2022 data. <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> (CC BY 4.0); river discharge from GloFAS, Copernicus Emergency Management Service.</p>
 
   <div id="out"></div>
 </main>
+<div class="decisions" id="decisions"><div><span id="dsum"></span><span class="muted">Decisions stay on this page. StockSense never sends an order or moves stock.</span></div></div>
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const naira = (n) => "₦" + Number(n || 0).toLocaleString("en-NG");
+const d1 = (n) => (Math.round(n * 10) / 10).toString();
 const FLAG = { below_safety: "warn", missing_reading: "bad", road_closing: "bad" };
+const SCALE = 60; // days shown on the race chart
+const AGENTS = ["DataAgent", "Forecaster", "Sentinel", "MemoryKeeper", "Planner", "Critic", "Evaluator", "Coordinator"];
+const RANK = { ok: 0, escalated: 1, fallback: 1, hold: 2, rejected: 2 };
 
 function table(cols, rows) {
   if (!rows.length) return '<p class="muted">None.</p>';
   return "<table><tr>" + cols.map((c) => `<th>${esc(c[0])}</th>`).join("") + "</tr>" +
-    rows.map((r) => "<tr>" + cols.map((c) => `<td class="${c[2] || ""}">${c[1](r)}</td>`).join("") + "</tr>").join("") + "</table>";
+    rows.map((r) => "<tr>" + cols.map((c) => `<td>${c[1](r)}</td>`).join("") + "</tr>").join("") + "</table>";
+}
+
+// Days of cover after the plan: today's stock, minus what a clinic gives, plus what it gets.
+function afterPlan(b) {
+  const delta = {};
+  for (const l of b.plan) {
+    delta[l.to] = (delta[l.to] || 0) + l.qty;
+    if (l.kind === "transfer") delta[l.source] = (delta[l.source] || 0) - l.qty;
+  }
+  return delta;
+}
+
+function verdict(b, C) {
+  const closing = Object.values(b.roads).filter((r) => r.closes_in_days != null).sort((a, z) => a.closes_in_days - z.closes_in_days);
+  const moved = b.plan.filter((l) => l.kind === "transfer").reduce((s, l) => s + l.qty, 0);
+  const bought = b.plan.filter((l) => l.kind === "purchase").reduce((s, l) => s + l.qty, 0);
+  const held = b.held || [];
+  const lead = closing.length
+    ? `${closing.length === 1 ? "One road" : closing.length + " roads"} could flood within 30 days: ` +
+      closing.map((r) => `<b>${esc(C[r.clinic_id]?.name || r.clinic_id)}</b> in ${d1(r.closes_in_days)} days`).join(", ") + "."
+    : "No clinic road is forecast to flood within 30 days.";
+  const plan = b.plan.length
+    ? `The plan moves ${moved} courses between clinics on day 1${bought ? ` and buys ${bought} for day 8` : ""}, ${naira(b.cost)} in all. Every line was re-checked against Zetaris.`
+    : "No plan lines.";
+  const hold = held.length ? ` ${held.length} on HOLD: ${held.map((h) => esc(C[h.clinic || h.to]?.name || h.clinic || h.to)).join(", ")}.` : "";
+  return `<div class="panel verdict ${esc(b.status)}"><p>${lead}</p><p>${plan}${hold}</p>
+    <div class="stats">
+      <div class="stat"><b class="status ${esc(b.status)}">${esc(b.status.replace("_", " "))}</b><span>status</span></div>
+      <div class="stat"><b>${naira(b.cost)}</b><span>plan cost</span></div>
+      <div class="stat"><b>${b.plan.length}</b><span>verified lines</span></div>
+      <div class="stat"><b>${held.length}</b><span>on HOLD</span></div>
+      <div class="stat"><b>${b.retries}</b><span>Critic retries</span></div>
+    </div></div>`;
+}
+
+function agentStrip(events) {
+  const by = {};
+  for (const e of events) {
+    const a = AGENTS.find((n) => e.agent_name.startsWith(n));
+    if (!a) continue;
+    const s = by[a] || (by[a] = { n: 0, status: "ok", rejected: 0 });
+    s.n++;
+    if (e.status === "rejected") s.rejected++;
+    if ((RANK[e.status] ?? 0) > (RANK[s.status] ?? 0)) s.status = e.status;
+  }
+  const note = (a, s) => a === "Critic" && s.rejected ? `rejected ${s.rejected}, then ok`
+    : a === "Sentinel" ? `${s.n} clinics` : s.status === "ok" ? "ok" : s.status;
+  return `<div class="panel"><h2>Agents this run</h2><div class="agents">` + AGENTS.filter((a) => by[a]).map((a, i) =>
+    `${i ? '<span class="arrow">→</span>' : ""}<div class="agent ${esc(by[a].status)}"><b>${esc(a)}</b><span>${esc(note(a, by[a]))}</span></div>`
+  ).join("") + `</div></div>`;
+}
+
+function race(b, C) {
+  const delta = afterPlan(b);
+  const pct = (d) => Math.min(100, (d / SCALE) * 100) + "%";
+  const rows = b.clinics.map((c) => {
+    const road = b.roads[c.clinic_id] || {};
+    const closes = road.closes_in_days;
+    const name = `<div class="name"><b>${esc(c.name)}</b><span>${esc(c.clinic_id)} · ${c.closes_above_m3s ? "road floods at " + Number(c.closes_above_m3s).toLocaleString() + " m³/s" : "all-weather road"}</span></div>`;
+    if (c.stock == null) {
+      return `${name}<div class="lane"><div class="bg"></div></div><div class="verdict-cell"><b class="status needs_review">On HOLD</b>${esc(c.problem || "no stock reading; ask the clinic")}</div>`;
+    }
+    const now = c.days_of_stock;
+    const after = Math.max(0, c.stock + (delta[c.clinic_id] || 0)) / c.daily_use;
+    const lines = b.plan.filter((l) => l.to === c.clinic_id);
+    const firstIn = lines.length ? Math.min(...lines.map((l) => l.deliver_day)) : null;
+    const f = b.flags[c.clinic_id] || [];
+    const short = f.includes("below_safety") && f.includes("road_closing");  // the Sentinels' flags
+    const fixed = after > now;
+    const cells = [
+      `<div class="bg"></div>`,
+      `<div class="bar now${short ? " short" : ""}" style="width:${pct(now)}" title="today: ${d1(now)} days"></div>`,
+      after !== now ? `<div class="bar after${fixed ? " good" : ""}" style="width:${pct(after)}" title="after plan: ${d1(after)} days"></div>` : "",
+      `<div class="mark safety" style="left:${pct(28)}" title="4-week safety stock"></div>`,
+      closes != null ? `<div class="mark road" style="left:${pct(closes)}" title="road could close in ${d1(closes)} days"></div>` : "",
+      firstIn != null ? `<div class="mark deliver" style="left:${pct(firstIn)}" title="first delivery day ${firstIn}"></div>` : "",
+    ].join("");
+    const say = closes != null
+      ? `<b class="${short && !fixed ? "status error" : ""}">Lasts ${d1(now)} d; road may close in ${d1(closes)} d</b>`
+      : `<b>Lasts ${now > SCALE ? SCALE + "+" : d1(now)} days</b>`;
+    const then = after !== now ? `after plan: ${after > SCALE ? SCALE + "+" : d1(after)} days${firstIn != null ? `, arrives day ${firstIn}` : ""}` : "no change";
+    return `${name}<div class="lane">${cells}</div><div class="verdict-cell">${say}<span class="muted">${then}</span></div>`;
+  }).join("");
+  const ticks = [0, 7, 14, 21, 28, 42, 60].map((d) => `<span style="left:${pct(d)}${d === SCALE ? ";transform:translateX(-100%)" : d === 0 ? ";transform:none" : ""}">${d}${d === SCALE ? "+" : ""}</span>`).join("");
+  return `<div class="panel"><h2>Will the medicine last until the road closes? <span class="muted">days of stock at today's rainy-season use</span></h2>
+    <div class="race"><div class="head">Clinic</div><div class="head"><div class="axis">${ticks}</div></div><div class="head">Today → after plan</div>${rows}</div>
+    <div class="legend"><span><i style="background:var(--ink);opacity:.75"></i>today</span><span><i style="background:var(--bad)"></i>below 4-week safety and road closing</span>
+    <span><i style="background:var(--ok);opacity:.75"></i>after plan</span><span><i style="border-left:2px solid var(--bad);width:2px;height:12px"></i>road could close</span>
+    <span><i style="border-left:1px dashed var(--muted);width:1px;height:12px"></i>4-week safety</span><span><i style="background:var(--accent);width:8px;border-radius:50%"></i>first delivery</span></div></div>`;
+}
+
+function river(b, C) {
+  const pts = b.river || [];
+  if (pts.length < 2) return "";
+  const W = 680, H = 220, L = 46, R = 120, T = 12, B = 26;
+  const last = pts[pts.length - 1][1];
+  const anyRoad = Object.values(b.roads)[0] || {};
+  const slope = Math.max(0, anyRoad.slope_m3s_per_day || 0);
+  const proj = 30;
+  const peak = Math.max(...pts.map((p) => p[1]), last + slope * proj);
+  const thr = [...new Set(b.clinics.filter((c) => c.closes_above_m3s).map((c) => c.closes_above_m3s))].sort((a, z) => a - z);
+  const reach = Math.max(peak * 1.6, (thr[0] || 0) * 1.4);  // always show the lowest flood levels
+  const ymax = Math.max(peak, ...thr.filter((t) => t <= reach)) * 1.08;
+  const n = pts.length - 1 + proj;
+  const x = (i) => L + (i / n) * (W - L - R);
+  const y = (v) => T + (1 - v / ymax) * (H - T - B);
+  const flow = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join("");
+  const i0 = pts.length - 1;
+  const projPath = slope ? `M${x(i0)},${y(last)}L${x(i0 + proj)},${y(last + slope * proj)}` : "";
+  const step = ymax > 4000 ? 1000 : 500;
+  const grid = Array.from({ length: Math.floor(ymax / step) + 1 }, (_, k) => k * step).map((v) => {
+    return `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v.toLocaleString()}</text>`;
+  }).join("");
+  const off = [];
+  const lines = thr.map((t) => {
+    const who = b.clinics.filter((c) => c.closes_above_m3s === t).map((c) => c.clinic_id).join(", ");
+    if (t > ymax) { off.push(`${who} at ${t.toLocaleString()}`); return ""; }
+    return `<line class="thr" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="thr-label" x="${W - R + 6}" y="${y(t) + 4}">${esc(who)} road ${t.toLocaleString()}</text>`;
+  }).join("");
+  const hits = Object.values(b.roads).filter((r) => r.closes_in_days != null).map((r) => {
+    const c = C[r.clinic_id];
+    return `<circle class="hit" cx="${x(i0 + r.closes_in_days)}" cy="${y(c.closes_above_m3s)}" r="4"><title>${esc(c.name)}: road could close in ${d1(r.closes_in_days)} days</title></circle>`;
+  }).join("");
+  const labels = (x(i0) - x(0) < 160
+    ? `<text x="${x(0)}" y="${H - 6}">${esc(pts[0][0])} to ${esc(pts[i0][0])} (today)</text>`
+    : `<text x="${x(0)}" y="${H - 6}">${esc(pts[0][0])}</text><text x="${x(i0)}" y="${H - 6}" text-anchor="middle">${esc(pts[i0][0])} (today)</text>`) +
+    `<text x="${x(n)}" y="${H - 6}" text-anchor="end">+30 days</text>`;
+  return `<div class="panel"><h2>Niger at Lokoja <span class="muted">GloFAS river discharge, m³/s, real 2022 data · dashed: fastest rise of the last 7 days, carried forward</span></h2>
+    <svg class="river" viewBox="0 0 ${W} ${H}" role="img"><title>River discharge up to ${esc(pts[i0][0])} with each road's flood level</title>
+    ${grid}${lines}<path class="flow" d="${flow}"/>${projPath ? `<path class="proj" d="${projPath}"/>` : ""}${hits}${labels}</svg>
+    ${off.length ? `<p class="muted" style="margin:6px 0 0;font-size:12px">Off the chart: ${esc(off.join("; "))}.</p>` : ""}
+    <p class="muted" style="margin:6px 0 0;font-size:12px">${slope ? `Rising up to +${Math.round(slope)} m³/s a day. A warning, not a date: the backtest in the README shows how early and how late these warnings came in 2022.` : "Not enough rise to forecast a closure."}</p></div>`;
+}
+
+function cards(b, C) {
+  const nm = (id) => C[id] ? `${esc(C[id].name)} <span class="muted">(${esc(id)})</span>` : esc(id);
+  const body = b.plan.map((l, i) => {
+    const what = l.kind === "transfer"
+      ? `Move <b data-q>${esc(l.qty)}</b> courses from ${nm(l.source)} to ${nm(l.to)}, arriving day ${esc(l.deliver_day)} · ${naira(l.cost)} transport`
+      : `Buy <b data-q>${esc(l.qty)}</b> courses from supplier ${esc(l.source)} for ${nm(l.to)}, arriving day ${esc(l.deliver_day)}`;
+    return `<div class="card" data-i="${i}"><div class="what">${what}</div><div class="why">${esc(l.why)}</div>
+      <div class="acts"><button type="button" data-act="approve">Approve</button><button type="button" class="ghost" data-act="edit">Edit</button><button type="button" class="ghost" data-act="reject">Reject</button></div></div>`;
+  }).join("");
+  const po = b.purchase_order;
+  return `<div class="panel"><h2>Plan for the pharmacist <span class="muted">every line re-verified against Zetaris before it is shown</span></h2>
+    <div class="cards" id="cards">${body || '<p class="muted">No lines.</p>'}</div>
+    ${po ? `<p class="po">Purchase order: <b>${esc(po.qty)}</b> courses from <b>${esc(po.supplier)}</b>, ${naira(po.cost)}, ${esc(po.lead_days)}-day lead <span class="muted">(${esc(po.why)})</span>.${po.staged_at_store_for ? ` Staged at the LGA store for ${esc([].concat(po.staged_at_store_for).join(", "))}.` : ""}</p>` : ""}
+    ${(b.held || []).length ? "<h2 style=\"margin-top:14px\">On HOLD</h2>" + table([["Clinic", (h) => nm(h.clinic || h.to)], ["Reason", (h) => esc(h.reason || h.hold_reason)]], b.held) : ""}
+    ${Object.keys(b.unmet || {}).length ? "<p>Not covered: " + Object.entries(b.unmet).map(([c, n]) => `${nm(c)} short by ${esc(n)}`).join(", ") + " (escalate).</p>" : ""}</div>`;
+}
+
+function wireCards(b) {
+  const state = b.plan.map(() => null);
+  const sum = () => {
+    const n = (s) => state.filter((x) => x === s).length;
+    $("#dsum").innerHTML = `<b>${n("approved")}</b> approved · <b>${n("edited")}</b> edited · <b>${n("rejected")}</b> rejected · <b>${n(null)}</b> to decide`;
+    $("#decisions").style.display = b.plan.length ? "block" : "none";
+  };
+  $("#cards")?.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("button[data-act]");
+    if (!btn) return;
+    const card = btn.closest(".card"), i = +card.dataset.i, act = btn.dataset.act;
+    card.classList.remove("approved", "rejected", "edited");
+    if (act === "edit") {
+      const q = card.querySelector("[data-q]");
+      if (!card.querySelector("input")) {
+        q.outerHTML = `<input type="number" min="0" value="${esc(b.plan[i].qty)}" aria-label="courses">`;
+        card.querySelector(".why").insertAdjacentHTML("beforeend", ' <span class="chip warn">edited: not re-checked by the Critic; plan again before acting</span>');
+      }
+      state[i] = "edited";
+      card.classList.add("edited");
+    } else {
+      state[i] = state[i] === act + "d" ? null : act + "d";
+      if (state[i]) card.classList.add(state[i]);
+    }
+    sum();
+  });
+  sum();
 }
 
 function render(b, events) {
-  const roads = Object.values(b.roads);
-  const held = b.held || [];
-  const unmet = Object.entries(b.unmet || {});
-  $("#out").innerHTML = `
-  <div class="panel grid">
-    <div class="stat"><b class="status ${esc(b.status)}">${esc(b.status.replace("_", " "))}</b><span>status</span></div>
-    <div class="stat"><b>${naira(b.cost)}</b><span>plan cost</span></div>
-    <div class="stat"><b>${b.plan.length}</b><span>verified lines</span></div>
-    <div class="stat"><b>${held.length}</b><span>on HOLD</span></div>
-    <div class="stat"><b>${b.retries}</b><span>Critic retries</span></div>
-  </div>
-  ${b.briefing ? `<div class="panel"><h2>Briefing <span class="muted">${b.briefing.source === "nemotron" ? esc(b.briefing.model) : "template: " + esc(b.briefing.reason)}</span></h2><p>${esc(b.briefing.text)}</p></div>` : ""}
+  const C = Object.fromEntries((b.clinics || []).map((c) => [c.clinic_id, c]));
+  $("#out").innerHTML = verdict(b, C) + agentStrip(events) + race(b, C) + river(b, C) + cards(b, C) + `
+  ${b.briefing ? `<div class="panel"><h2>Briefing <span class="muted">${b.briefing.source === "nemotron" ? esc(b.briefing.model) + " · every number checked against the plan" : "template: " + esc(b.briefing.reason)}</span></h2><p class="briefing">${esc(b.briefing.text)}</p></div>` : ""}
   <div class="panel"><h2>Memory <span class="muted">H-MEM: notes at ≥0.70 confidence are applied, lower ones are asked</span></h2>${
     (b.memory || {}).error ? `<p class="muted">H-MEM unavailable: ${esc(b.memory.error)}</p>` :
     ((b.memory || {}).memories || []).length ? table([
-      ["Memory", (m) => esc(m.content)], ["Confidence", (m) => esc(m.confidence.toFixed(2)), "num"],
+      ["Memory", (m) => esc(m.content)], ["Confidence", (m) => esc(m.confidence.toFixed(2))],
       ["Effect", (m) => m.confidence >= 0.7 ? "applied: supplier avoided" : '<span class="chip warn">confirm with pharmacist</span>'],
     ], b.memory.memories) : '<p class="muted">No supplier notes yet.</p>'}
-    <form id="fb"><input id="note" placeholder="Edit note, e.g. S2 was late again, use S3" style="flex:1;min-width:220px;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)"><button type="submit">Remember</button><span id="fbmsg" class="muted"></span></form></div>
-  <div class="panel"><h2>Roads and flags</h2>${table([
-    ["Clinic", (r) => esc(r.clinic_id)],
-    ["Flags", (r) => (b.flags[r.clinic_id] || []).map((f) => `<span class="chip ${FLAG[f] || ""}">${esc(f.replace("_", " "))}</span>`).join("") || '<span class="muted">none</span>'],
-    ["Road forecast", (r) => esc(r.reason)],
-    ["Confidence", (r) => r.confidence == null ? "" : esc(r.confidence), "num"],
-  ], roads)}</div>
-  <div class="panel"><h2>Plan (re-verified against Zetaris)</h2>${table([
-    ["Kind", (l) => esc(l.kind)], ["From", (l) => esc(l.source)], ["To", (l) => esc(l.to)],
-    ["Courses", (l) => esc(l.qty), "num"], ["Arrives", (l) => "day " + esc(l.deliver_day), "num"],
-    ["Transport", (l) => l.kind === "transfer" ? naira(l.cost) : "", "num"], ["Why", (l) => esc(l.why)],
-  ], b.plan)}
-  ${b.purchase_order ? `<p>Purchase order: <b>${esc(b.purchase_order.qty)}</b> courses from <b>${esc(b.purchase_order.supplier)}</b>, ${naira(b.purchase_order.cost)}, ${esc(b.purchase_order.lead_days)}-day lead (${esc(b.purchase_order.why)}).</p>` : ""}</div>
-  <div class="panel"><h2>On HOLD and unmet</h2>${table([
-    ["Clinic", (h) => esc(h.clinic || h.to)], ["Reason", (h) => esc(h.reason || h.hold_reason)],
-  ], held)}${unmet.length ? "<p>Not covered: " + unmet.map(([c, n]) => `${esc(c)} short by ${esc(n)}`).join(", ") + " (escalate).</p>" : ""}</div>
-  <div class="panel"><h2>Agent trace <span class="muted">${esc(b.trace)}</span></h2>${table([
-    ["Agent", (e) => esc(e.agent_name)], ["Action", (e) => esc(e.action)], ["Output", (e) => esc(e.output_summary)],
-    ["→", (e) => esc(e.target_agent)], ["Retry", (e) => esc(e.retry_count), "num"], ["Status", (e) => esc(e.status)],
-  ], events)}</div>`;
+    <form id="fb"><input id="note" placeholder="Tell it, e.g. S2 was late again, use S3" style="flex:1;min-width:220px"><button type="submit">Remember</button><span id="fbmsg" class="muted"></span></form></div>
+  <div class="panel"><details><summary>Roads, flags and the full agent trace</summary>
+    <h2 style="margin-top:12px">Roads and flags</h2>${table([
+      ["Clinic", (r) => esc(r.clinic_id)],
+      ["Flags", (r) => (b.flags[r.clinic_id] || []).map((f) => `<span class="chip ${FLAG[f] || ""}">${esc(f.replace("_", " "))}</span>`).join("") || '<span class="muted">none</span>'],
+      ["Road forecast", (r) => esc(r.reason)], ["Confidence", (r) => r.confidence == null ? "" : esc(r.confidence)],
+    ], Object.values(b.roads))}
+    <h2 style="margin-top:12px">Agent trace <span class="muted">${esc(b.trace)}</span></h2>${table([
+      ["Agent", (e) => esc(e.agent_name)], ["Action", (e) => esc(e.action)], ["Output", (e) => esc(e.output_summary)],
+      ["→", (e) => esc(e.target_agent)], ["Retry", (e) => esc(e.retry_count)], ["Status", (e) => esc(e.status)],
+    ], events)}</details></div>`;
+  wireCards(b);
   $("#fb").addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const r = await fetch("/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: $("#note").value }) });
@@ -130,9 +416,11 @@ $("#f").addEventListener("submit", async (ev) => {
     if (b.error) throw new Error(`${b.error.type}: ${b.error.message}`);
     const t = await fetch("/trace/" + encodeURIComponent(b.run_id));
     render(b, t.ok ? await t.json() : []);
+    $("#out").scrollIntoView({ behavior: "smooth" });
     $("#msg").textContent = `run ${b.run_id}${b.sample_mode ? " · SAMPLE_MODE replay" : " · live Zetaris"}`;
   } catch (e) {
     $("#out").innerHTML = `<div class="panel"><span class="status error">error</span> ${esc(e.message)}</div>`;
+    $("#decisions").style.display = "none";
     $("#msg").textContent = "";
   } finally {
     $("#go").disabled = false;

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from app import data
@@ -90,4 +91,7 @@ def run(as_of: str, trace: Trace, constraints: dict | None = None) -> dict[str, 
     trace.log("Coordinator", "briefing", f"{len(out['plan'])} lines, ₦{out['cost']:,}", b["reason"],
               target_agent="Pharmacist", model=b["model"], status="ok" if b["source"] == "nemotron" else "fallback")
     out["briefing"] = b
+    # For the UI's charts; added after the briefing so Nemotron's input is unchanged.
+    out["clinics"] = [{**asdict(c), "days_of_stock": c.days_of_stock} for c in clinics]
+    out["river"] = river[-60:]
     return out

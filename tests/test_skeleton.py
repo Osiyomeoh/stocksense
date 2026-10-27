@@ -34,6 +34,11 @@ class RunTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(body["held"][-1]["clinic"], "P6")
         self.assertEqual(body["briefing"]["source"], "template")
+        # The UI's race and river charts read these.
+        p6 = next(c for c in body["clinics"] if c["clinic_id"] == "P6")
+        self.assertEqual((p6["stock"], p6["days_of_stock"]), (None, None))
+        self.assertTrue({"name", "daily_use", "closes_above_m3s"} <= p6.keys())
+        self.assertEqual(body["river"], [("2022-07-04", 1058.25)])
         event = json.loads((config.ROOT / body["trace"]).read_text().splitlines()[0])
         self.assertEqual(tuple(event)[: len(FIELDS)], FIELDS)
 

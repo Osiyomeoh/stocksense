@@ -2,6 +2,12 @@
 
 **Which rural clinics will be cut off by floods before their malaria medicine runs out, and what should the LGA pharmacist move or buy today?**
 
+[![ci](https://github.com/Osiyomeoh/stocksense/actions/workflows/ci.yml/badge.svg)](https://github.com/Osiyomeoh/stocksense/actions/workflows/ci.yml)
+
+**[▶ Demo video [FILL]]([FILL])** · **[Watch recorded runs, no install](https://osiyomeoh.github.io/stocksense/)** · **[Deck [FILL]]([FILL])** · `python3 prove.py` checks every number below in about 20 s, no keys
+
+**Replayed over the real 2022 rainy season (river real, clinics synthetic): 73 clinic-days without medicine against 93 for a naive reorder rule, at 26% less spend (₦18,279,200 against ₦24,541,000).** See [Season replay](#does-it-keep-medicine-on-the-shelf-a-whole-season-replay).
+
 > Not a clinical tool. StockSense drafts a plan; a pharmacist approves every action.
 
 Open Agent Hackathon 2026 entry, Track 1. StockSense joins three kinds of source in one Zetaris semantic layer:
@@ -163,4 +169,4 @@ That is 20 fewer clinic-days without medicine than the naive rule, at 26% less s
 
 ## Built before and during the event
 
-Before Oct 22: planning docs, the synthetic Kafin LGA scenario numbers, a DHIS2 demo download (not used in the app). Everything in this repo's code was written during the event. Third-party: Open-Meteo API data under CC BY 4.0 ([licence](https://open-meteo.com/en/licence); the UI shows the required "Weather data by Open-Meteo.com" link), GloFAS river discharge from the Copernicus Emergency Management Service under the CEMS-FLOODS datasets licence ([dataset page](https://ewds.climate.copernicus.eu/datasets/cems-glofas-historical), DOI [10.24381/cds.a4fdd6b9](https://doi.org/10.24381/cds.a4fdd6b9); the licence text itself is not on that page and we have not reviewed it), patterns from zetaris/getting-started (Apache-2.0), the H-MEM reference implementation from meterless/meterless (Apache-2.0, vendored unmodified in `vendor/hmem/`).
+Before Oct 22: planning docs, the synthetic Kafin LGA scenario numbers, a DHIS2 demo download (not used in the app). Everything in this repo's code was written during the event. Third-party: Open-Meteo API data under CC BY 4.0 ([licence](https://open-meteo.com/en/licence); the UI shows the required "Weather data by Open-Meteo.com" link), GloFAS river discharge from the Copernicus Emergency Management Service under the CEMS-FLOODS datasets licence ([dataset page](https://ewds.climate.copernicus.eu/datasets/cems-glofas-historical), DOI [10.24381/cds.a4fdd6b9](https://doi.org/10.24381/cds.a4fdd6b9); the licence text itself is not on that page and we have not reviewed it), patterns from zetaris/getting-started (Apache-2.0), the H-MEM reference implementation from meterless/meterless (Apache-2.0, vendored unmodified in `vendor/hmem/`). Photos in `app/ui/img/` come from Wikimedia Commons and are credited where they appear: a Copernicus Sentinel-2 image of the 2022 Kogi flood (contains modified Copernicus Sentinel data 2022), Badung Samuel Yohanna, CDC, for the President's Malaria Initiative (public domain), and Amechi Idodo culture and Sani Maikatanga ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)). The people shown are not StockSense users.

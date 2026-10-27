@@ -81,22 +81,21 @@ def handle(raw: str, fn=run) -> tuple[int, dict[str, Any]]:
 
 MAX_BODY = 4096
 UI = config.ROOT / "app" / "ui" / "index.html"
+IMG = UI.parent / "img"
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/":
-            data = UI.read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            return self.wfile.write(data)
+            return self._raw(UI.read_bytes(), "text/html; charset=utf-8")
+        name = self.path.removeprefix("/img/")
+        if self.path.startswith("/img/") and name in {p.name for p in IMG.glob("*.jpg")}:
+            return self._raw((IMG / name).read_bytes(), "image/jpeg")
         run_id = self.path.removeprefix("/trace/")
         path = config.LOG_DIR / f"trace-{run_id}.jsonl"
         if self.path.startswith("/trace/") and run_id.isalnum() and path.is_file():
             return self._send(200, [json.loads(l) for l in path.read_text().splitlines() if l])
-        self._send(404, {"error": {"type": "not_found", "message": "GET / or /trace/<run_id>; POST /run"}})
+        self._send(404, {"error": {"type": "not_found", "message": "GET /, /img/<name> or /trace/<run_id>; POST /run"}})
 
     def do_POST(self) -> None:
         fn = {"/run": run, "/feedback": feedback}.get(self.path)
@@ -109,6 +108,13 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             return self._send(400, {"error": {"type": "bad_input", "message": f"Content-Length must be 0..{MAX_BODY}"}})
         self._send(*handle(self.rfile.read(length).decode(errors="replace"), fn))
+
+    def _raw(self, data: bytes, content_type: str) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def _send(self, status: int, body: dict[str, Any]) -> None:
         data = json.dumps(body, default=str).encode()

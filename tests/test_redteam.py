@@ -92,7 +92,9 @@ class RedTeam(unittest.TestCase):
         threading.Thread(target=server.serve_forever, daemon=True).start()
         self.addCleanup(server.shutdown)
         base = f"http://127.0.0.1:{server.server_port}"
-        for path in ("/trace/..%2F..%2F.env", "/trace/../../.env", "/.env"):
+        with urllib.request.urlopen(base + "/img/kogi-flood-2022.jpg", timeout=5) as r:
+            self.assertEqual(r.headers["Content-Type"], "image/jpeg")
+        for path in ("/trace/..%2F..%2F.env", "/trace/../../.env", "/.env", "/img/../../.env", "/img/..%2F..%2F.env"):
             with self.subTest(path=path), self.assertRaises(urllib.error.HTTPError) as e:
                 urllib.request.urlopen(base + path, timeout=5)
             self.assertEqual(e.exception.code, 404)
