@@ -4,7 +4,7 @@
 
 [![ci](https://github.com/Osiyomeoh/stocksense/actions/workflows/ci.yml/badge.svg)](https://github.com/Osiyomeoh/stocksense/actions/workflows/ci.yml)
 
-**[▶ Demo video [FILL]]([FILL])** · **[Watch recorded runs, no install](https://osiyomeoh.github.io/stocksense/)** · **[Deck [FILL]]([FILL])** · `python3 prove.py` checks every number below in about 20 s, no keys
+**[▶ Demo video [FILL]]([FILL])** · **[Watch recorded runs, no install](https://osiyomeoh.github.io/stocksense/)** · **[Deck](https://claude.ai/artifact/6CUVx7Aj3RAHKx3zTG5Vut)** · `python3 prove.py` checks every number below in about 10 s, no keys
 
 **Replayed over the real 2022 rainy season (river real, clinics synthetic): 73 clinic-days without medicine against 93 for a naive reorder rule, at 26% less spend (₦18,279,200 against ₦24,541,000).** See [Season replay](#does-it-keep-medicine-on-the-shelf-a-whole-season-replay).
 
@@ -151,7 +151,7 @@ That is 20 fewer clinic-days without medicine than the naive rule, at 26% less s
 
 **One view instead of three integrations.** `infra/zetaris_usl.sql` defines `clinic_risk`, which joins Postgres stock and clinics, the road register (a spreadsheet), and the GloFAS river and rain tables in 38 lines of SQL. The app reads all of it through 165 lines (`app/data.py` and `app/adapters/zetaris.py`) and never connects to Postgres, the spreadsheet or Open-Meteo itself. The view's `LEFT JOIN`s keep a clinic that reported no stock as a row with an empty `stock_courses`, rather than dropping it. That empty value is what puts P6 on HOLD on 2022-07-04. The Evaluator re-reads the same view to check every number a plan line rests on.
 
-**Measured latency** (Zetaris Cloud, 2022-10-26, 5 runs per query, from Lagos):
+**Measured latency** (Zetaris Cloud, 2026-10-26, 5 runs per query, from Lagos):
 
 | Query | Rows | Median | Slowest |
 |---|---|---|---|
