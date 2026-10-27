@@ -21,7 +21,7 @@ Open Agent Hackathon 2026 entry, Track 1. StockSense joins three kinds of source
 
 No single source says which clinics will be cut off before their stock runs out. The join does.
 
-## Prove it (no keys, no cluster, about 20 seconds)
+## Prove it (no keys, no cluster, about 10 seconds)
 
 ```bash
 python3 prove.py
@@ -52,7 +52,7 @@ Zetaris USL ──► Forecaster (+ held warnings, H-MEM) ──► Sentinels �
 |---|---|---|
 | Coordinator | `nvidia/nemotron-3.5-lightning-30b-a3b` (override with `COORDINATOR_MODEL`) | Nightshift, `http://127.0.0.1:8088/v1` |
 
-The other agents are deterministic code: they decide, the model only words the decision. Each Coordinator call is a trace event whose `model` field names the model that answered. Nightshift receipt log: [FILL].
+The other agents are deterministic code: they decide, the model only words the decision. Each Coordinator call is a trace event whose `model` field names the model that answered. Nightshift receipts: both recorded Coordinator calls in `data/sample_cache/nightshift/` keep the compute receipt Nightshift returned (`rcpt_req_rbasaqv0`, `rcpt_req_mtas9x59`), next to the model that answered.
 
 Every step writes one trace event (`logs/trace-<run_id>.jsonl`) with: timestamp, run_id, agent_name, action, input_summary, output_summary, target_agent, model, confidence, retry_count, status.
 
@@ -72,6 +72,8 @@ Notes are parsed with rules, not a model: each clause naming a known supplier an
 How it runs: `memory/hmem_cli.ts` is a small Node sidecar over the unmodified H-MEM reference implementation in `vendor/hmem/` (Apache-2.0, see `vendor/hmem/NOTICE`). It needs Node ≥ 23.6 and no npm install. State is in `data/memory/` (`state.json`, plus the trust ledger `ledger.jsonl`), set with `HMEM_DIR`. If Node is missing, the run goes on without memory and the trace says so. Test: `tests/test_memory_changes_decision.py` runs the real engine.
 
 ## Run it
+
+Dependencies: Python 3.11 or newer, standard library only (nothing to `pip install`; CI runs 3.11), and Node.js 24 for H-MEM, which is vendored as TypeScript in `vendor/hmem` and run with `node --experimental-transform-types`. The Docker image bundles both.
 
 Offline, from recorded Zetaris responses (no cluster needed):
 
